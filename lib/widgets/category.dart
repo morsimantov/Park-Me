@@ -1,11 +1,14 @@
+import '../screens/plan_drive_screen.dart';
+import '../screens/search_screen.dart';
+
 class Category {
   String thumbnail;
   String name;
-  int noOfCourses;
+  var function;
 
   Category({
     required this.name,
-    required this.noOfCourses,
+    required this.function,
     required this.thumbnail,
   });
 }
@@ -13,22 +16,22 @@ class Category {
 List<Category> categoryList = [
   Category(
     name: 'Find a spot now',
-    noOfCourses: 55,
+    function: (context) => const SearchScreen(title: '',),
     thumbnail: 'assets/images/parking_spot.png',
   ),
   Category(
     name: 'Plan a drive',
-    noOfCourses: 20,
+    function: (context) => const PlanDriveScreen(title: '',),
     thumbnail: 'assets/images/route.png',
   ),
   Category(
     name: 'Alert me',
-    noOfCourses: 16,
+    function: (context) => const PlanDriveScreen(title: '',),
     thumbnail: 'assets/images/plan.png',
   ),
   Category(
     name: 'Parking lots nearby',
-    noOfCourses: 25,
+    function: (context) => const SearchScreen(title: '',),
     thumbnail: 'assets/images/parking_area.png',
   ),
 ];
