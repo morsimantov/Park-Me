@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:park_me/screens/home_screen.dart';
 
@@ -20,7 +19,7 @@ class _HomePageState extends State<HomePage> {
     Timer(const Duration(milliseconds: 3000), (){
       setState(() {
         Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const SearchPage()), (route) => false);
+            MaterialPageRoute(builder: (context) => const HomeScreen(title: '',)), (route) => false);
       });
     });
 
