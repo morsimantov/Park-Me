@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Positioned(
                   left: 7,
-                  top: 18,
+                  top: 13,
                   child: Image.asset(
                     'assets/images/logo_parkme.png',
                     height: 60,
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 GridView.builder(
                   shrinkWrap: true,
                   padding: const EdgeInsets.only(
-                    top: 170,
+                    top: 180,
                     left: 30,
                     right: 30,
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:park_me/screens/parking_lots_screen.dart';
 
 class FilterScreen extends StatefulWidget {
   const FilterScreen({super.key, required this.title});
@@ -48,7 +49,9 @@ class _FilterScreenState extends State<FilterScreen> {
 
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: const Text("Find a Parking spot"),
+      ),
       backgroundColor: const Color(0xFFDBF8EE),
       // bottomNavigationBar: Container(
       //   height: 80,
@@ -332,13 +335,18 @@ class _FilterScreenState extends State<FilterScreen> {
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 530),
+                    padding: const EdgeInsets.symmetric(vertical: 580),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF35858),
                         padding: const EdgeInsets.symmetric(horizontal: 26),
                       ),
                       onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ParkingLotsScreen(),
+                            ));
                       },
                       child: const Text(
                         'Apply',
