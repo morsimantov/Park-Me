@@ -1,3 +1,5 @@
+import 'package:park_me/screens/parking_lots_nearby.dart';
+
 import '../screens/plan_drive_screen.dart';
 import '../screens/search_screen.dart';
 
@@ -31,7 +33,7 @@ List<Category> categoryList = [
   ),
   Category(
     name: 'Parking lots nearby',
-    function: (context) => const SearchScreen(title: '',),
+    function: (context) => const ParkingLotsNearbyScreen(),
     thumbnail: 'assets/images/parking_area.png',
   ),
 ];

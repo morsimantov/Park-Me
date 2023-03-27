@@ -1,8 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:park_me/screens/parking_lots_screen.dart';
 import '../widgets/search_bar.dart';
 import 'filter_screen.dart';
 import 'home_screen.dart';
+import 'dart:convert';
+import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
+import 'package:geocoding/geocoding.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, required this.title});
@@ -16,13 +21,13 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   int _selectedIndex = 0;
 
-  Color _availabilityButtonColor =  const Color(0xFFD6E7E2);
+  Color _availabilityButtonColor = const Color(0xFFD6E7E2);
   Color _availabilityTextColor = const Color(0xFF868D8C);
 
-  Color _undergroundButtonColor =  const Color(0xFFD6E7E2);
+  Color _undergroundButtonColor = const Color(0xFFD6E7E2);
   Color _undergroundTextColor = const Color(0xFF868D8C);
 
-  Color _accessibleButtonColor =  const Color(0xFFD6E7E2);
+  Color _accessibleButtonColor = const Color(0xFFD6E7E2);
   Color _accessibleTextColor = const Color(0xFF868D8C);
 
   void _onItemTapped(int index) {
@@ -32,27 +37,70 @@ class _SearchScreenState extends State<SearchScreen> {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const HomeScreen(title: '',),
+              builder: (_) => const HomeScreen(
+                title: '',
+              ),
             ));
       }
     });
   }
+
+  var _controller = TextEditingController();
+  var uuid = new Uuid();
+  String _sessionToken = '1234567890';
+  List<dynamic> _placeList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      _onChanged();
+    });
+  }
+
+  _onChanged() {
+    if (_sessionToken == null) {
+      setState(() {
+        _sessionToken = uuid.v4();
+      });
+    }
+    getSuggestion(_controller.text);
+  }
+
+  void getSuggestion(String input) async {
+    String kPLACES_API_KEY = "AIzaSyC4VmB_2iR5E6wN_mU3Fqcn19HxHqRGTDo";
+    String type = '(regions)';
+
+    try {
+      String baseURL =
+          'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+      String request =
+          '$baseURL?input=$input&key=$kPLACES_API_KEY&sessiontoken=$_sessionToken';
+      var response = await http.get(Uri.parse(request));
+      var data = json.decode(response.body);
+      print('mydata');
+      print(data);
+      if (response.statusCode == 200) {
+        setState(() {
+          _placeList = json.decode(response.body)['predictions'];
+        });
+      } else {
+        throw Exception('Failed to load predictions');
+      }
+    } catch (e) {
+      // toastMessage('success');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(),
-      // backgroundColor: const Color(0xFFB8E3D6),
-      // bottomNavigationBar: Container(
-      //   height: 80,
-      //   width: double.infinity,
-      //   padding: const EdgeInsets.all(10),
-      //   color: Colors.teal,
-      //   child: const Padding(
-      //     padding: EdgeInsets.only(bottom: 10),
-      //   ),
-      //
+      appBar: AppBar(
+        title: const Text("Find a Parking spot"),
+      ),
+      backgroundColor: const Color(0xFFDBF8EE),
       bottomNavigationBar: BottomNavigationBar(
-      items: const <BottomNavigationBarItem>[
+        items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
             label: 'Search',
@@ -70,139 +118,102 @@ class _SearchScreenState extends State<SearchScreen> {
         selectedItemColor: Colors.teal,
         onTap: _onItemTapped,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFBEEFE0), Color(0xFFD7F3EA)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                Positioned(
-                  left: 8,
-                  top: 22,
-                  child: Image.asset('assets/images/logo_parkme.png', height: 60,
-                    width: 60, fit: BoxFit.fitWidth,),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 88, vertical: 105),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          'Enter your destination:',
-                          style: TextStyle(
-                            color: Color(0xFF474948),
-                            fontSize: 20,
-                            // fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 7,
-                      ),
-                    ],
-                  ),
-                ),
-                const SearchBar(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 216),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          Align(
+            alignment: Alignment.topCenter,
+            child: TextField(
+              onSubmitted: (value) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ParkingLotsScreen(),
+               ));
+              },
+              controller: _controller,
+              decoration: InputDecoration(
+                hintText: "Search",
+                focusColor: Colors.white,
+                floatingLabelBehavior: FloatingLabelBehavior.never,
+                prefixIcon: const Icon(Icons.search),
+                // InkWell(
+                //   child: const Icon(
+                //     Icons.tune,
+                //     color: Color(0xFF626463),
+                //   ),
+                //   onTap: () {
+                //     Navigator.push(
+                //         context,
+                //         MaterialPageRoute(
+                //           builder: (_) => const FilterScreen(
+                //             title: '',
+                //           ),
+                //         ));
+                //   },
+                // ),
+                suffixIcon: Container(
+                  width: 100,
                   child: Row(
                     children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _availabilityButtonColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
+                      IconButton(
                         onPressed: () {
-                          if (_availabilityButtonColor == const Color(0xFFD6E7E2)) {
-                            setState(() => _availabilityButtonColor = const Color(0xFF5DD5C7));
-                            setState(() => _availabilityTextColor = Colors.white);
-                          } else {
-                            setState(() => _availabilityButtonColor = const Color(0xFFD6E7E2));
-                            setState(() => _availabilityTextColor = const Color(0xFF868D8C));
-                          }
+                          print('add button pressed');
                         },
-                        child: Text(
-                          'Availability',
-                          style: TextStyle(
-                            color: _availabilityTextColor,
+                        icon:  InkWell(
+                          child: const Icon(
+                            Icons.tune,
+                            color: Color(0xFF626463),
                           ),
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FilterScreen(
+                                    title: '',
+                                  ),
+                                ));
+                          },
                         ),
                       ),
-                      const Spacer(),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _undergroundButtonColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.cancel),
                         onPressed: () {
-                          if (_undergroundButtonColor == const Color(0xFFD6E7E2)) {
-                            setState(() => _undergroundButtonColor = const Color(0xFF5DD5C7));
-                            setState(() => _undergroundTextColor = Colors.white);
-                          } else {
-                            setState(() => _undergroundButtonColor = const Color(0xFFD6E7E2));
-                            setState(() => _undergroundTextColor = const Color(0xFF868D8C));
-                          }
-                        },
-                        child: Text(
-                          'Underground',
-                          style: TextStyle(
-                            color: _undergroundTextColor,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _accessibleButtonColor,
-                        ),
-                        onPressed: () {
-                          if (_accessibleButtonColor == const Color(0xFFD6E7E2)) {
-                            setState(() => _accessibleButtonColor = const Color(0xFF5DD5C7));
-                            setState(() => _accessibleTextColor = Colors.white);
-                          } else {
-                            setState(() => _accessibleButtonColor = const Color(0xFFD6E7E2));
-                            setState(() => _accessibleTextColor = const Color(0xFF868D8C));
-                          }
-                        },
-                        child: Text(
-                          'Accessible',
-                          style: TextStyle(
-                            color: _accessibleTextColor,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      InkWell(
-                        child: const Icon(
-                          Icons.tune,
-                          color: Color(0xFF626463),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FilterScreen(title: '',),
-                              ));
+                          _controller.clear();
                         },
                       ),
                     ],
                   ),
                 ),
 
-              ],
-            ),
-          ],
-        ),
-      ),
 
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              physics: NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              itemCount: _placeList.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () async {
+                    List<Location> locations = await locationFromAddress(
+                        _placeList[index]['description']);
+                    print(locations.last.longitude);
+                    print(locations.last.latitude);
+                    _controller.value = _controller.value.copyWith(
+                      text: _placeList[index]['description'],);
+                  },
+                  child: ListTile(
+                    title: Text(_placeList[index]["description"]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

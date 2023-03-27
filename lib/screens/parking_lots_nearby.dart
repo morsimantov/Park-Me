@@ -4,14 +4,14 @@ import 'package:park_me/screens/search_screen.dart';
 import '../data/dummy_parking_lots.dart';
 import 'home_screen.dart';
 
-class ParkingLotsScreen extends StatefulWidget {
-  const ParkingLotsScreen({Key? key}) : super(key: key);
+class ParkingLotsNearbyScreen extends StatefulWidget {
+  const ParkingLotsNearbyScreen({Key? key}) : super(key: key);
 
   @override
-  State<ParkingLotsScreen> createState() => _ParkingLotsScreenState();
+  State<ParkingLotsNearbyScreen> createState() => _ParkingLotsNearbyScreenState();
 }
 
-class _ParkingLotsScreenState extends State<ParkingLotsScreen> {
+class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
   Position? _currentUserPosition;
   double? distanceImMeter = 0.0;
   Data data = Data();
@@ -79,7 +79,7 @@ class _ParkingLotsScreenState extends State<ParkingLotsScreen> {
         backgroundColor: Colors.teal,
         title: const Text("All Parking Lots Near you"),
       ),
-      backgroundColor: const Color(0xFFD7EEE7),
+      backgroundColor: const Color(0xFFB8E3D6),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -116,11 +116,11 @@ class _ParkingLotsScreenState extends State<ParkingLotsScreen> {
                 width: width * 0.3,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
-                  color: Colors.teal,
+                  color: const Color(0xffd6e7e2),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(.1),
-                      blurRadius: 6.0,
+                      blurRadius: 1.0,
                       spreadRadius: .1,
                     ), //BoxShadow
                   ],
@@ -142,10 +142,10 @@ class _ParkingLotsScreenState extends State<ParkingLotsScreen> {
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
+                        borderRadius: const BorderRadiusDirectional.only(topEnd: Radius.circular(8.0), topStart: Radius.circular(8.0), ),
                         child: Image.network(
-                        data.allParkingLots[index]['image'],
-                        fit: BoxFit.fill,
+                          data.allParkingLots[index]['image'],
+                          fit: BoxFit.fill,
                         ),
                       ),
                     ),
@@ -157,7 +157,7 @@ class _ParkingLotsScreenState extends State<ParkingLotsScreen> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Color(0xFF626463),
                       ),
                     ),
                     const SizedBox(
@@ -166,13 +166,14 @@ class _ParkingLotsScreenState extends State<ParkingLotsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.location_on),
+                        const Icon(Icons.location_on,
+                        color:Colors.teal),
                         Text(
                           "${data.allParkingLots[index]['distance'].round()} KM Away",
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Color(0xFF626463),
                           ),
                         ),
                       ],
