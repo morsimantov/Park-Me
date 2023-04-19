@@ -53,11 +53,11 @@ class _ParkingLotsScreenState extends State<ParkingLotsScreen> {
     setState(() {
       _selectedIndex = index;
       if (index == 0) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const SearchScreen(title: '',),
-            ));
+        // Navigator.push(
+        //     context,
+        //     MaterialPageRoute(
+        //       builder: (_) => const SearchScreen(title: '',),
+        //     ));
       }
       if (index == 1) {
         Navigator.push(

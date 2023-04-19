@@ -1,5 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:park_me/provider/google_sign_in.dart';
 import 'package:park_me/screens/search_screen.dart';
+import 'package:park_me/screens/sign_up_screen.dart';
+import 'package:provider/provider.dart';
+import '../model/filter_parameters.dart';
 import '../widgets/category.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,7 +24,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const SearchScreen(title: '',),
+              builder: (_) => SearchScreen(
+                title: '',
+                filterStatus:
+                    FilterParameters(false, false, false, false, false),
+              ),
             ));
       }
     });
@@ -28,121 +37,170 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(),
-      backgroundColor: const Color(0xFFB8E3D6),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star),
-            label: 'Favorites',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.teal,
-        onTap: _onItemTapped,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                Transform.rotate(
-                  origin: const Offset(30, -60),
-                  angle: 2.4,
-                  child: Container(
-                    margin: const EdgeInsets.only(
-                      left: 75,
-                      top: 40,
-                    ),
-                    height: 400,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(80),
-                      gradient: const LinearGradient(
-                        begin: Alignment.bottomLeft,
-                        colors: [Color(0xfff5d7df), Color(0xFFDE79C0)],
-                        // colors: [Color(0xfff5d7df), Color(0xFFDE79C0)],
+      body: StreamBuilder(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                backgroundColor: Color(0xffebecf3),
+                  body: Center(
+                child: CircularProgressIndicator(),
+              ));
+            } else if (snapshot.hasData) {
+              final user = FirebaseAuth.instance.currentUser!;
+              return Scaffold(
+                appBar: AppBar(
+                  backgroundColor: const Color(0xFF03A295),
+                  automaticallyImplyLeading: false,
+                  title: Text("User: " + user.displayName!,
+                      style: const TextStyle(
+                        fontSize: 16,
+                      )),
+                  centerTitle: false,
+                  actions: [
+                    TextButton(
+                      child: const Text(
+                        "Logout",
+                        style: TextStyle(color: Colors.white,
+                          fontSize: 16,),
                       ),
+                      onPressed: () {
+                        final provider = Provider.of<GoogleSignInProvider>(
+                            context,
+                            listen: false);
+                        provider.logout();
+                      },
                     ),
-                  ),
+                  ],
                 ),
-                Positioned(
-                  left: 7,
-                  top: 13,
-                  child: Image.asset(
-                    'assets/images/logo_parkme.png',
-                    height: 60,
-                    width: 60,
-                    fit: BoxFit.fitWidth,
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 88, vertical: 75),
+                // backgroundColor: const Color(0xFFB8E3D6),
+                backgroundColor: const Color(0xffebecf3),
+                // bottomNavigationBar: BottomNavigationBar(
+                //   backgroundColor: const Color(0xffe1e2e8),
+                //   items: const <BottomNavigationBarItem>[
+                //     BottomNavigationBarItem(
+                //       icon: Icon(Icons.search),
+                //       label: 'Search',
+                //     ),
+                //     BottomNavigationBarItem(
+                //       icon: Icon(Icons.home),
+                //       label: 'Home',
+                //     ),
+                //     BottomNavigationBarItem(
+                //       icon: Icon(Icons.star),
+                //       label: 'Favorites',
+                //     ),
+                //   ],
+                //   currentIndex: _selectedIndex,
+                //   selectedItemColor: Colors.teal,
+                //   onTap: _onItemTapped,
+                // ),
+                body: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          'Find a parking spot',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
+                    children: [
+                      Stack(
+                        children: [
+                          Transform.rotate(
+                            origin: const Offset(30, -60),
+                            angle: 2.4,
+                            child: Container(
+                              margin: const EdgeInsets.only(
+                                left: 75,
+                                top: 40,
+                              ),
+                              height: 400,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(80),
+                                gradient: const LinearGradient(
+                                  begin: Alignment.bottomLeft,
+                                  colors: [
+                                    Color(0xffd6e6e6),
+                                    Color(0xffaad3cb),
+                                  ],
+                                  // colors: [Color(0xfff5d7df), Color(0xFFDE79C0)],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 7,
-                      ),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          'by your own preferences',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
+                          // Positioned(
+                          //   left: 7,
+                          //   top: 13,
+                          //   child: Image.asset(
+                          //     'assets/images/logo_parkme.png',
+                          //     height: 60,
+                          //     width: 60,
+                          //     fit: BoxFit.fitWidth,
+                          //   ),
+                          // ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 80, vertical: 37),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'Find a parking spot',
+                                    style: TextStyle(
+                                      color: Color(0xEC037268),
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 7,
+                                ),
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'by your own preferences',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Color(0xEC037268),
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          GridView.builder(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.only(
+                              top: 124,
+                              left: 30,
+                              right: 30,
+                            ),
+                            gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.8,
+                              crossAxisSpacing: 18,
+                              mainAxisSpacing: 18,
+                            ),
+                            itemBuilder: (context, index) {
+                              return CategoryCard(
+                                category: categoryList[index],
+                              );
+                            },
+                            itemCount: categoryList.length,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                GridView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.only(
-                    top: 180,
-                    left: 30,
-                    right: 30,
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.8,
-                    crossAxisSpacing: 25,
-                    mainAxisSpacing: 18,
-                  ),
-                  itemBuilder: (context, index) {
-                    return CategoryCard(
-                      category: categoryList[index],
-                    );
-                  },
-                  itemCount: categoryList.length,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+              );
+            }
+            else if (snapshot.hasError) {
+              return const Center(child: Text('Something Went Wrong!'));
+            }  else {
+              return SignUpScreen();
+            }
+          }),
     );
   }
 }
@@ -167,7 +225,7 @@ class CategoryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: const Color(0xdfffffff),
+          color: const Color(0xddffffff),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -197,6 +255,7 @@ class CategoryCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16,
+                  fontFamily: 'MiriamLibre',
                 ),
               ),
             ),

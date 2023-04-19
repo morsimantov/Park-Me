@@ -2,6 +2,7 @@
     package="com.example.park_me">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="park_me"
         android:name="${applicationName}"
@@ -33,6 +34,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_GOOGLE_API_KEY_HERE"/>
+            android:value="AIzaSyCFNLqcJAyMFeiz7A2ZZYv6WeZfSrTEROY"/>
     </application>
 </manifest>
