@@ -32,6 +32,8 @@ dependencies:
   google_maps_flutter: ^2.2.5
   geolocator: ^9.0.2
   uuid: ^3.0.6
+  flutter_vector_icons: ^2.0.0
+  hover_effect: ^0.6.0
   http:
   flutter:
     sdk: flutter
@@ -40,6 +42,17 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
+
+  firebase_auth: ^4.4.0
+  google_sign_in: ^6.1.0
+  google_places_flutter: ^2.0.5
+  font_awesome_flutter: ^10.4.0
+  provider: ^5.0.0
+  cloud_firestore: ^4.5.1
+  firebase_core: ^2.9.0
+  firebase_storage: ^11.1.0
+  flutter_smart_dialog: ^4.9.0
+  get_state_manager: ^3.13.0
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +70,11 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  fonts:
+    - family: MiriamLibre
+      fonts:
+        - asset: assets/fonts/MiriamLibre-Regular.ttf
+        - asset: assets/fonts/MiriamLibre-Bold.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -80,12 +98,12 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
+#  fonts:
+#    - family: MiriamLibre
+#      fonts:
+#        - asset: fonts/MiriamLibre-Bold.ttf
+#        - asset: fonts/MiriamLibre-Regular.ttf
+#           stye: italic
   #   - family: Trajan Pro
   #     fonts:
   #       - asset: fonts/TrajanPro.ttf
@@ -95,8 +113,3 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
 
-fonts:
-  - family: MiriamLibre
-    fonts:
-      - asset: fonts/MiriamLibre-Regular.ttf
-      - asset: fonts/MiriamLibre-Bold.ttf

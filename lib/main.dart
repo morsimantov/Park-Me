@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:park_me/provider/google_sign_in.dart';
 import 'package:park_me/screens/splash_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 
-void main() {
+Future main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -11,8 +17,16 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    var materialApp = MaterialApp(
+    return ChangeNotifierProvider(
+      create: (context) => GoogleSignInProvider(),
+      child: MaterialApp(
+        navigatorObservers: [FlutterSmartDialog.observer],
+        builder: FlutterSmartDialog.init(),
       title: 'Flutter Demo',
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const SplashScreen(title: '',),
+      },
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -25,9 +39,9 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.teal,
       ),
-      home: const HomePage(title: 'Flutter Demo Home Page'),
+      // home: const SplashScreen(title: 'Flutter Demo Home Page'),
+    ),
     );
-    return materialApp;
   }
 }
 
