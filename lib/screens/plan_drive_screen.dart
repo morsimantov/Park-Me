@@ -58,9 +58,10 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF03A295),
         title: const Text("Plan a Drive in Advance"),
       ),
-      // backgroundColor: const Color(0xFFB8E3D6),
+      backgroundColor: const Color(0xfff6f7f9),
       // bottomNavigationBar: Container(
       //   height: 80,
       //   width: double.infinity,
@@ -71,6 +72,7 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
       //   ),
       //
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xe4e8eaf1),
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
@@ -86,18 +88,10 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.teal,
+        selectedItemColor: const Color(0xFF03A295),
         onTap: _onItemTapped,
       ),
       body: SingleChildScrollView(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFBEEFE0), Color(0xFFD7F3EA)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
           child: Column(
             children: [
               Stack(
@@ -121,6 +115,7 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
                         style: TextStyle(
                           color: Color(0xFF474948),
                           fontSize: 18,
+                          // fontFamily:'MiriamLibre',
                           // fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -189,7 +184,7 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
                         horizontal: 160, vertical: 325),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
+                        backgroundColor: const Color(0xFF55C0B3),
                         padding: const EdgeInsets.symmetric(horizontal: 15),
                       ),
                       onPressed: _showTimePicker,
@@ -204,18 +199,17 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 520),
+                      padding: const EdgeInsets.symmetric(vertical: 450),
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF35858),
+                          backgroundColor: const Color(0xFF03A295),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 12),
+                              horizontal: 100, vertical: 12),
                         ),
                         onPressed: () {},
                         child: const Text(
                           'Plan a Drive',
                           style: TextStyle(
-                            fontSize: 18,
                             color: Colors.white,
                           ),
                         ),
@@ -226,7 +220,6 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
               ),
             ],
           ),
-        ),
       ),
     );
   }

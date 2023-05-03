@@ -1,16 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../widgets/search_bar.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:park_me/model/filter_parameters.dart';
+import 'package:park_me/screens/parking_lots_results_screen.dart';
 import 'filter_screen.dart';
 import 'home_screen.dart';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
+import 'package:geocoding/geocoding.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, required this.title});
-
+  final FilterParameters filterStatus;
   final String title;
+
+  const SearchScreen(
+      {super.key, required this.title, required this.filterStatus});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -18,15 +27,33 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   int _selectedIndex = 0;
+  String wantedLocationAddress = "current location";
+  // late FilterParameters filterStatus = FilterParameters(false, false, false, false, false);
 
-  Color _availabilityButtonColor = const Color(0xFFD6E7E2);
-  Color _availabilityTextColor = const Color(0xFF868D8C);
+  late GoogleMapController _mapController;
 
-  Color _undergroundButtonColor = const Color(0xFFD6E7E2);
-  Color _undergroundTextColor = const Color(0xFF868D8C);
+  static const CameraPosition initialPosition = CameraPosition(target: LatLng(31.8980, 34.8094), zoom: 14.0);
 
-  Color _accessibleButtonColor = const Color(0xFFD6E7E2);
-  Color _accessibleTextColor = const Color(0xFF868D8C);
+  static const CameraPosition targetPosition = CameraPosition(target: LatLng(32.8980, 36.8094), zoom: 14.0, bearing: 192.0, tilt: 60);
+  Set<Marker> markers = {};
+  late Position _position;
+  late Position _currentPosition;
+
+  Future<Position> getCurrentPosition() async {
+    LocationPermission permission;
+    permission = await Geolocator.requestPermission();
+    Position currentUserPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    _currentPosition = currentUserPosition;
+    setMarker(_currentPosition!.latitude, _currentPosition!.longitude);
+    return currentUserPosition;
+  }
+
+  Future<void> setMarker(double lat, double long) async {
+    markers.clear();
+    markers.add(Marker(markerId: const MarkerId('currentLocation'),position: LatLng(lat, long)));
+    setState(() {});
+  }
+
 
   void _onItemTapped(int index) {
     setState(() {
@@ -43,7 +70,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  var _controller = TextEditingController();
+  var _searchController = TextEditingController();
   var uuid = new Uuid();
   String _sessionToken = '1234567890';
   List<dynamic> _placeList = [];
@@ -51,9 +78,15 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
+    _searchController.addListener(() {
       _onChanged();
     });
+    SmartDialog.showLoading(
+      msg: "loading",
+      maskColor: const Color(0xffebecf3),
+    );
+    getCurrentPosition();
+    SmartDialog.dismiss();
   }
 
   _onChanged() {
@@ -62,11 +95,11 @@ class _SearchScreenState extends State<SearchScreen> {
         _sessionToken = uuid.v4();
       });
     }
-    getSuggestion(_controller.text);
+    getSuggestion(_searchController.text);
   }
 
   void getSuggestion(String input) async {
-    String kPLACES_API_KEY = "your api";
+    String kPLACES_API_KEY = "AIzaSyC4VmB_2iR5E6wN_mU3Fqcn19HxHqRGTDo";
     String type = '(regions)';
 
     try {
@@ -93,86 +126,117 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Find a Parking spot"),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star),
-            label: 'Favorites',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.teal,
-        onTap: _onItemTapped,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFBEEFE0), Color(0xFFD7F3EA)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        appBar: AppBar(
+          title: const Text("Find a Parking spot"),
+          backgroundColor: const Color(0xFF03A295),
         ),
-        child: Column(
+        backgroundColor: const Color(0xfff5f6fa),
+        bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: const Color(0xe4e8eaf1),
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              label: 'Search',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.star),
+              label: 'Favorites',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: const Color(0xFF03A295),
+          onTap: _onItemTapped,
+        ),
+        body:  Stack(
           children: [
-            Stack(
+            GoogleMap(
+              initialCameraPosition: initialPosition,
+              markers: markers,
+              zoomControlsEnabled: false,
+              mapType: MapType.normal,
+              onMapCreated: (GoogleMapController controller) {
+                _mapController  = controller;
+              },
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
-                Padding(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 88, vertical: 60),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          'Enter your destination:',
-                          style: TextStyle(
-                            color: Color(0xFF474948),
-                            fontSize: 20,
-                            // fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 7,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 430,
-                  height: 50,
-                  margin:
-                  const EdgeInsets.symmetric(vertical: 105, horizontal: 30),
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(29.5),
-                  ),
+                Align(
+                  alignment: Alignment.topCenter,
                   child: TextField(
-                    controller: _controller,
+
+                    onSubmitted: (value) {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ParkingLotsResultsScreen(
+                              wantedLocationAddress: wantedLocationAddress,
+                              filterStatus: widget.filterStatus,
+                            ),
+                          ));
+                    },
+                    controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: "Search",
-                      icon: Icon(Icons.search),
-                      border: InputBorder.none,
+                      filled: true,
+                      fillColor: Colors.white,
+                      hintText: "Current location",
+                      hintStyle: const TextStyle(
+                        fontFamily: 'MiriamLibre',
+                      ),
+                      focusColor: Colors.white,
                       floatingLabelBehavior: FloatingLabelBehavior.never,
-                      suffixIcon: IconButton(
-                        icon: Icon(Icons.cancel),
+                      prefixIcon: IconButton(
+                        icon: const Icon(Icons.cancel),
                         onPressed: () {
-                          _controller.clear();
+                          _searchController.clear();
+                          setState(() {
+                            wantedLocationAddress = "currentLocation";
+                          });
                         },
+                      ),
+                      suffixIcon: Container(
+                        width: 100,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {},
+                              icon: InkWell(
+                                child: const Icon(
+                                  Icons.tune,
+                                  color: Color(0xFF626463),
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => FilterScreen(
+                                          wantedLocationAddress:
+                                          wantedLocationAddress,
+                                          filterStatus: widget.filterStatus,
+                                        ),
+                                      ));
+                                },
+                              ),
+                            ),
+                            InkWell(
+                              child: const Icon(Icons.search),
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ParkingLotsResultsScreen(
+                                        wantedLocationAddress: wantedLocationAddress,
+                                        filterStatus: widget.filterStatus,
+                                      ),
+                                    ));
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -184,7 +248,25 @@ class _SearchScreenState extends State<SearchScreen> {
                     itemCount: _placeList.length,
                     itemBuilder: (context, index) {
                       return GestureDetector(
-                        onTap: () async {},
+                        onTap: () async {
+                          List<Location> locations = await locationFromAddress(
+                              _placeList[index]['description']);
+                          double longitude = locations.last.longitude;
+                          double latitude = locations.last.latitude;
+                          print(longitude);
+                          print(latitude);
+                          _searchController.value = _searchController.value.copyWith(
+                            text: _placeList[index]['description'],
+                          );
+                          setState(() {
+                            wantedLocationAddress = _placeList[index]['description'];
+                            _mapController
+                                .animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: LatLng(latitude, longitude), zoom: 14)));
+                            markers.clear();
+                            setMarker(latitude, longitude);
+
+                          });
+                        },
                         child: ListTile(
                           title: Text(_placeList[index]["description"]),
                         ),
@@ -192,113 +274,10 @@ class _SearchScreenState extends State<SearchScreen> {
                     },
                   ),
                 ),
-                Padding(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 30, vertical: 162),
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _availabilityButtonColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        onPressed: () {
-                          if (_availabilityButtonColor ==
-                              const Color(0xFFD6E7E2)) {
-                            setState(() => _availabilityButtonColor =
-                            const Color(0xFF5DD5C7));
-                            setState(
-                                    () => _availabilityTextColor = Colors.white);
-                          } else {
-                            setState(() => _availabilityButtonColor =
-                            const Color(0xFFD6E7E2));
-                            setState(() => _availabilityTextColor =
-                            const Color(0xFF868D8C));
-                          }
-                        },
-                        child: Text(
-                          'Availability',
-                          style: TextStyle(
-                            color: _availabilityTextColor,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _undergroundButtonColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                        ),
-                        onPressed: () {
-                          if (_undergroundButtonColor ==
-                              const Color(0xFFD6E7E2)) {
-                            setState(() => _undergroundButtonColor =
-                            const Color(0xFF5DD5C7));
-                            setState(
-                                    () => _undergroundTextColor = Colors.white);
-                          } else {
-                            setState(() => _undergroundButtonColor =
-                            const Color(0xFFD6E7E2));
-                            setState(() => _undergroundTextColor =
-                            const Color(0xFF868D8C));
-                          }
-                        },
-                        child: Text(
-                          'Underground',
-                          style: TextStyle(
-                            color: _undergroundTextColor,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _accessibleButtonColor,
-                        ),
-                        onPressed: () {
-                          if (_accessibleButtonColor ==
-                              const Color(0xFFD6E7E2)) {
-                            setState(() => _accessibleButtonColor =
-                            const Color(0xFF5DD5C7));
-                            setState(() => _accessibleTextColor = Colors.white);
-                          } else {
-                            setState(() => _accessibleButtonColor =
-                            const Color(0xFFD6E7E2));
-                            setState(() =>
-                            _accessibleTextColor = const Color(0xFF868D8C));
-                          }
-                        },
-                        child: Text(
-                          'Accessible',
-                          style: TextStyle(
-                            color: _accessibleTextColor,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      InkWell(
-                        child: const Icon(
-                          Icons.tune,
-                          color: Color(0xFF626463),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FilterScreen(
-                                  title: '',
-                                ),
-                              ));
-                        },
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ],
-        ),
-      ),
+        )
     );
   }
 }

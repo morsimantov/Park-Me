@@ -1,5 +1,6 @@
 import 'package:park_me/screens/parking_lots_nearby.dart';
 
+import '../model/filter_parameters.dart';
 import '../screens/plan_drive_screen.dart';
 import '../screens/search_screen.dart';
 
@@ -18,7 +19,7 @@ class Category {
 List<Category> categoryList = [
   Category(
     name: 'Find a spot now',
-    function: (context) => const SearchScreen(title: '',),
+    function: (context) => SearchScreen(title: '', filterStatus: FilterParameters(false, false, false, false, false),),
     thumbnail: 'assets/images/parking_spot.png',
   ),
   Category(

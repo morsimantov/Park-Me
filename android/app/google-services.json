@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "370434129990",
+    "project_id": "parkme--signin",
+    "storage_bucket": "parkme--signin.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370434129990:android:6c379a6f985daa2347ca47",
+        "android_client_info": {
+          "package_name": "com.example.park_me"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "370434129990-arv3h2ogtjkbtl05jt3o5tjibliblisg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9YJVJzDHADxgygA8tmrsY51fw1gxDPpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "370434129990-9ppia2sjlopgkjd3l80fd4jb0t8pqjus.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
