@@ -100,7 +100,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
   }
 
   Future<void> getParkingLotList() async {
-    final response = await http.get(Uri.parse("${Env.URL_PREFIX}/api"));
+    final response = await http.get(Uri.parse(Env.URL_PREFIX));
     print("response");
     final decodedResponse = utf8.decode(response.bodyBytes);
     final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();

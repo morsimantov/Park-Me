@@ -6,7 +6,7 @@ class ParkingLot {
   final String opening_hours;
   final String fare;
   final int? is_accessible;
-  final int? availability;
+  final double? availability;
   final int? num_parking_spots;
   final String paying_method;
   final String? updated_time;
