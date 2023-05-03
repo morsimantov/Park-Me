@@ -21,63 +21,63 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
   Position? _currentUserPosition;
   double? distanceImMeter = 0.0;
   late Future<List<ParkingLot>> allParkingLots;
-  late List<ParkingLot> parkingLots;
-  double? distanceInMeter = 0.0;
   final parkinglotListKey = GlobalKey<_ParkingLotsNearbyScreenState>();
-  late double wantedLocationLat;
-  late double wantedLocationLong;
-
+  Map<ParkingLot, Location> parkingLotsLocations = {};
+  late List<ParkingLot> parkingLotsObjects = [];
 
   @override
   void initState() {
     super.initState();
-    parkingLots = [];
-    getParkingLotList();
+    allParkingLots = getParkingLotList();
+    getLotsLocations();
+    _getTheDistance();
   }
 
-  Future<void> getParkingLotList() async {
-    final response = await http.get(Uri.parse(Env.URL_PREFIX));
-    // final response = await http.get(Uri.parse("${Env.URL_PREFIX}/api"));
+  Future<List<ParkingLot>> getParkingLotList() async {
+    final response = await http.get(Uri.parse("${Env.URL_PREFIX}/api"));
     print("response");
-    print(response.body);
     final decodedResponse = utf8.decode(response.bodyBytes);
     final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
-    List<ParkingLot> parkingLotsTemp = items.map<ParkingLot>((json) {
+    List<ParkingLot> parkingLots = items.map<ParkingLot>((json) {
       return ParkingLot.fromJson(json);
     }).toList();
-    setState(() {
-      parkingLots.addAll(parkingLotsTemp);
-    });
-    await _getTheDistance();
-    parkingLots.sort((a, b) => a.distance.compareTo(b.distance));
-    parkingLots = parkingLots.take(8).toList();
+
+    return parkingLots;
   }
 
+  Map<ParkingLot, Location> getLotsLocations() {
+    getParkingLotList().then((allParkingLots) async {
+      for (var parkingLotItem in allParkingLots) {
+        final address = parkingLotItem.address;
+        List<Location> locations = await locationFromAddress(address);
+        parkingLotsLocations[parkingLotItem] = locations.first;
+      }
+    });
+    return parkingLotsLocations;
+  }
 
   Future _getTheDistance() async {
     LocationPermission permission;
     permission = await Geolocator.requestPermission();
     _currentUserPosition = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high);
+    print('current User Position: ');
     print(_currentUserPosition);
-    wantedLocationLat = _currentUserPosition!.latitude;
-    wantedLocationLong = _currentUserPosition!.longitude;
-    for (var parkingLotItem in parkingLots) {
-      final address = parkingLotItem.address;
-      List<Location> locations = await locationFromAddress(address);
-      Location lotLocation = locations.first;
-      double parkingLotLat = lotLocation.latitude;
-      double parkingLotLng = lotLocation.longitude;
-      distanceInMeter = await Geolocator.distanceBetween(
-        wantedLocationLat,
-        wantedLocationLong,
+
+    parkingLotsLocations.forEach((key, value) async {
+      double parkingLotLat = value.latitude;
+      double parkingLotLng = value.longitude;
+
+      distanceImMeter = await Geolocator.distanceBetween(
+        _currentUserPosition!.latitude,
+        _currentUserPosition!.longitude,
         parkingLotLat,
         parkingLotLng,
       );
-      var distance = distanceInMeter?.round().toInt();
-      parkingLotItem.distance = (distance! / 1000);
+      var distance = distanceImMeter?.round().toInt();
+      key.distance = (distance! / 1000);
       setState(() {});
-    }
+    });
   }
 
   int _selectedIndex = 0;
@@ -92,7 +92,7 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
               builder: (_) => SearchScreen(
                 title: '',
                 filterStatus:
-                FilterParameters(false, false, false, false, false),
+                    FilterParameters(false, false, false, false, false),
               ),
             ));
       }
@@ -110,6 +110,9 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    parkingLotsObjects = parkingLotsLocations.keys.toList();
+    parkingLotsObjects.sort((a, b) => a.distance.compareTo(b.distance));
+    parkingLotsObjects = parkingLotsObjects.take(8).toList();
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
     return Scaffold(
@@ -142,90 +145,90 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
       body: Padding(
         padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
         child: Center(
-          child: (parkingLots.isEmpty)
+          child: (parkingLotsObjects.isEmpty)
               ? const CircularProgressIndicator()
               : GridView.builder(
-              itemCount: parkingLots.length,
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 200,
-                childAspectRatio: 3 / 3,
-                crossAxisSpacing: 15,
-                mainAxisSpacing: 15,
-              ),
-              itemBuilder: (context, index) {
-                return Container(
-                  height: height * 0.9,
-                  width: width * 0.3,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    color: const Color(0xffd6e6e6),
-                    boxShadow: const [
-                      BoxShadow(
-                          color: Color(0xFFCCC8C8),
-                          blurRadius: 5,
-                          spreadRadius: 3,
-                          offset: Offset(3, 2)),
-                    ],
+                  itemCount: parkingLotsObjects.length,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 200,
+                    childAspectRatio: 3 / 3,
+                    crossAxisSpacing: 15,
+                    mainAxisSpacing: 15,
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: height * 0.15,
-                        width: width,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          color: Colors.teal,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(.1),
-                              blurRadius: 6.0,
-                              spreadRadius: .1,
-                            ), //BoxShadow
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: const BorderRadiusDirectional.only(
-                            topEnd: Radius.circular(8.0),
-                            topStart: Radius.circular(8.0),
-                          ),
-                          child: Image.network(
-                            parkingLots[index].image,
-                            fit: BoxFit.fill,
-                          ),
-                        ),
+                  itemBuilder: (context, index) {
+                    return Container(
+                      height: height * 0.9,
+                      width: width * 0.3,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        color: const Color(0xffd6e6e6),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0xFFCCC8C8),
+                              blurRadius: 5,
+                              spreadRadius: 3,
+                              offset: Offset(3, 2)),
+                        ],
                       ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        parkingLots[index].lot_name,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          color: Color(0xFF626463),
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 5,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
                         children: [
-                          const Icon(Icons.location_on, color: Colors.teal),
+                          Container(
+                            height: height * 0.15,
+                            width: width,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              color: Colors.teal,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(.1),
+                                  blurRadius: 6.0,
+                                  spreadRadius: .1,
+                                ), //BoxShadow
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: const BorderRadiusDirectional.only(
+                                topEnd: Radius.circular(8.0),
+                                topStart: Radius.circular(8.0),
+                              ),
+                              child: Image.network(
+                                parkingLotsObjects[index].image,
+                                fit: BoxFit.fill,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
                           Text(
-                            "${parkingLots[index].distance.round()} KM Away",
+                            parkingLotsObjects[index].lot_name,
                             style: const TextStyle(
-                              fontFamily: 'MiriamLibre',
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 19,
                               color: Color(0xFF626463),
                             ),
                           ),
+                          const SizedBox(
+                            height: 5,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.location_on, color: Colors.teal),
+                              Text(
+                                "${parkingLotsObjects[index].distance.round()} KM Away",
+                                style: const TextStyle(
+                                  fontFamily: 'MiriamLibre',
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF626463),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                );
-              }),
+                    );
+                  }),
         ),
       ),
     );

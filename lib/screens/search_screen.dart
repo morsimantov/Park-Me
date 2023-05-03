@@ -7,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:park_me/model/filter_parameters.dart';
 import 'package:park_me/screens/parking_lots_results_screen.dart';
-import 'package:park_me/screens/favorites_screen.dart';
 import 'filter_screen.dart';
 import 'home_screen.dart';
 import 'dart:convert';
@@ -65,18 +64,12 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _selectedIndex = index;
       if (index == 1) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const HomeScreen(
-              title: '',
-            ),
-          ));
-    }else if (index == 2) {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const FavoritesScreen(),
+              builder: (_) => const HomeScreen(
+                title: '',
+              ),
             ));
       }
     });
