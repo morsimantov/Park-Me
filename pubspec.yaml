@@ -53,6 +53,11 @@ dependencies:
   firebase_storage: ^11.1.0
   flutter_smart_dialog: ^4.9.0
   get_state_manager: ^3.13.0
+  url_launcher: ^6.1.11
+  flutter_typeahead: ^4.6.0
+  get: ^4.6.1
+  google_maps_webservice: ^0.0.19
+  quickalert: ^1.0.1
 
 dev_dependencies:
   flutter_test:

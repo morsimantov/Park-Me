@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:park_me/screens/parking_lots_results_screen.dart';
-import 'package:park_me/screens/parking_lots_screen.dart';
-import 'dart:math';
 import '../model/filter_parameters.dart';
 
 class FilterScreen extends StatefulWidget {
@@ -22,12 +20,16 @@ class _FilterScreenState extends State<FilterScreen> {
   late Color _accessibleTextColor;
   late Color _undergroundButtonColor;
   late Color _undergroundTextColor;
+  late Color _discountButtonColor;
+  late Color _discountTextColor;
+  late Color _distanceButtonColor;
+  late Color _distanceTextColor;
   late Color _priceButtonColor;
   late Color _priceTextColor;
   late bool isCashChecked;
   late bool isCreditChecked;
   late bool isPangoChecked = false;
-  double _walkingDisSlider = 20;
+  double _walkingDisSlider = 25;
   double _priceSlider = 20;
   bool isHover=false;
 
@@ -40,6 +42,10 @@ class _FilterScreenState extends State<FilterScreen> {
     _accessibleTextColor = filterStatus.accessibility ? Colors.white : const Color(0xFF868D8C);
     _undergroundButtonColor = filterStatus.isUnderground ?  const Color(0xFF55C0B3): const Color(0xFFD6E7E2);
     _undergroundTextColor = filterStatus.isUnderground ? Colors.white : const Color(0xFF868D8C);
+    _discountButtonColor = filterStatus.discount ?  const Color(0xFF55C0B3): const Color(0xFFD6E7E2);
+    _discountTextColor = filterStatus.discount ? Colors.white : const Color(0xFF868D8C);
+    _distanceButtonColor = filterStatus.distance ?  const Color(0xFF55C0B3): const Color(0xFFD6E7E2);
+    _distanceTextColor = filterStatus.distance ? Colors.white : const Color(0xFF868D8C);
     _priceButtonColor = filterStatus.fixedPrice ?  const Color(0xFF55C0B3) : const Color(0xFFD6E7E2);
     _priceTextColor = filterStatus.fixedPrice ? Colors.white : const Color(0xFF868D8C);
     isCashChecked = filterStatus.cash ? true : false;
@@ -81,7 +87,7 @@ class _FilterScreenState extends State<FilterScreen> {
               children: [
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 25),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
@@ -92,7 +98,7 @@ class _FilterScreenState extends State<FilterScreen> {
                           style: TextStyle(
                             fontFamily: 'MiriamLibre',
                             color: Color(0xFF474948),
-                            fontSize: 20,
+                            fontSize: 18,
                             // fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -102,13 +108,13 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 90),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 57),
                   child: Row(
                     children: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _availabilityButtonColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
                         onPressed: () {
                           if (_availabilityButtonColor ==
@@ -136,6 +142,73 @@ class _FilterScreenState extends State<FilterScreen> {
                         ),
                       ),
                       const SizedBox(width: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _distanceButtonColor,
+                          padding: const EdgeInsets.symmetric(horizontal: 23),
+                        ),
+                        onPressed: () {
+                          if (_distanceButtonColor ==
+                              const Color(0xFFD6E7E2)) {
+                            setState(() {
+                              _distanceButtonColor =
+                              const Color(0xFF55C0B3);
+                              _distanceTextColor = Colors.white;
+                              filterStatus.distance = true;
+                            });
+                          } else {
+                            setState(() {
+                              _distanceButtonColor =
+                              const Color(0xFFD6E7E2);
+                              _distanceTextColor = const Color(0xFF868D8C);
+                              filterStatus.distance = false;
+                            });
+                          }
+                        },
+                        child: Text(
+                          'Distance',
+                          style: TextStyle(
+                            color: _distanceTextColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _accessibleButtonColor,
+                          padding: const EdgeInsets.symmetric(horizontal: 11),
+                        ),
+                        onPressed: () {
+                          if (_accessibleButtonColor ==
+                              const Color(0xFFD6E7E2)) {
+                            setState(() {
+                              _accessibleButtonColor = const Color(0xFF55C0B3);
+                              _accessibleTextColor = Colors.white;
+                              filterStatus.accessibility = true;
+                            });
+                          } else {
+                            setState(() {
+                              _accessibleButtonColor = const Color(0xFFD6E7E2);
+                              _accessibleTextColor = const Color(0xFF868D8C);
+                              filterStatus.accessibility = false;
+                            });
+                          }
+                        },
+                        child: Text(
+                          'Accessibility',
+                          style: TextStyle(
+                            color: _accessibleTextColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 30, vertical: 102),
+                  child: Row(
+                    children: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _undergroundButtonColor,
@@ -167,29 +240,51 @@ class _FilterScreenState extends State<FilterScreen> {
                       const SizedBox(width: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _accessibleButtonColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 11),
+                          backgroundColor: _discountButtonColor,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                         ),
                         onPressed: () {
-                          if (_accessibleButtonColor ==
+                          if (_discountButtonColor ==
                               const Color(0xFFD6E7E2)) {
                             setState(() {
-                              _accessibleButtonColor = const Color(0xFF55C0B3);
-                              _accessibleTextColor = Colors.white;
-                              filterStatus.accessibility = true;
+                              _discountButtonColor = const Color(0xFF55C0B3);
+                              _discountTextColor = Colors.white;
+                              filterStatus.discount = true;
                             });
                           } else {
                             setState(() {
-                              _accessibleButtonColor = const Color(0xFFD6E7E2);
-                              _accessibleTextColor = const Color(0xFF868D8C);
-                              filterStatus.accessibility = false;
+                              _discountButtonColor = const Color(0xFFD6E7E2);
+                              _discountTextColor = const Color(0xFF868D8C);
+                              filterStatus.discount = false;
                             });
                           }
                         },
                         child: Text(
-                          'Accessible',
+                          'Resident Discount',
                           style: TextStyle(
-                            color: _accessibleTextColor,
+                            color: _discountTextColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 30, vertical: 168),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Filter by:',
+                          style: TextStyle(
+                            fontFamily: 'MiriamLibre',
+                            color: Color(0xFF474948),
+                            fontSize: 18,
+                            // fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -198,7 +293,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 160),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 205),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
@@ -218,11 +313,11 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 185),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 220),
                   child: Slider(
                     value: _walkingDisSlider,
-                    max: 30,
-                    divisions: 6,
+                    max: 60,
+                    divisions: 12,
                     label: _walkingDisSlider.round().toString(),
                     onChanged: (double value) {
                       setState(() {
@@ -234,7 +329,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 240),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 260),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
@@ -254,11 +349,11 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 265),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 275),
                   child: Slider(
                     value: _priceSlider,
-                    max: 120,
-                    divisions: 12,
+                    max: 50,
+                    divisions: 5,
                     label: _priceSlider.round().toString(),
                     onChanged: (double value) {
                       setState(() {
@@ -270,7 +365,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 315),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 318),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _priceButtonColor,
@@ -301,7 +396,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 383),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 385),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
@@ -321,7 +416,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 400),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 402),
                   child: Checkbox(
                     checkColor: Colors.white,
                     fillColor: MaterialStateProperty.resolveWith(getColor),
@@ -335,7 +430,7 @@ class _FilterScreenState extends State<FilterScreen> {
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 62, vertical: 415),
+                  padding: EdgeInsets.symmetric(horizontal: 62, vertical: 417),
                   child: Text(
                     'Cash',
                     style: TextStyle(
@@ -347,7 +442,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 430),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 432),
                   child: Checkbox(
                     checkColor: Colors.white,
                     fillColor: MaterialStateProperty.resolveWith(getColor),
@@ -361,7 +456,7 @@ class _FilterScreenState extends State<FilterScreen> {
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 62, vertical: 445),
+                  padding: EdgeInsets.symmetric(horizontal: 62, vertical: 447),
                   child: Text(
                     'Credit card',
                     style: TextStyle(
@@ -373,7 +468,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 460),
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 462),
                   child: Checkbox(
                     checkColor: Colors.white,
                     fillColor: MaterialStateProperty.resolveWith(getColor),
@@ -387,7 +482,7 @@ class _FilterScreenState extends State<FilterScreen> {
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 62, vertical: 475),
+                  padding: EdgeInsets.symmetric(horizontal: 62, vertical: 477),
                   child: Text(
                     'Pango',
                     style: TextStyle(
