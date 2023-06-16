@@ -13,6 +13,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import '../env.sample.dart';
 import 'home_screen.dart';
+import 'lot_details_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({
@@ -29,11 +30,12 @@ class FavoritesScreenState extends State<FavoritesScreen> {
   late double wantedLocationLat;
   late double wantedLocationLong;
   final user = FirebaseAuth.instance.currentUser!;
+  late bool _isFavoritesEmpty = false;
 
   double? distanceInMeter = 0.0;
 
   final parkinglotListKey = GlobalKey<FavoritesScreenState>();
-  int _selectedIndex = 0;
+  int _selectedIndex = 2;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -54,7 +56,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
               builder: (_) => SearchScreen(
                 title: '',
                 filterStatus:
-                    FilterParameters(false, false, false, false, false),
+                    FilterParameters(false, false, false, false, false, false, false),
               ),
             ));
       }
@@ -81,6 +83,9 @@ class FavoritesScreenState extends State<FavoritesScreen> {
     }).toList();
     setState(() {
       parkingLots.addAll(parkingLotsTemp);
+      if (parkingLots.isEmpty) {
+        _isFavoritesEmpty = true;
+      }
     });
     _getTheDistance();
   }
@@ -105,6 +110,9 @@ class FavoritesScreenState extends State<FavoritesScreen> {
         .get();
     for (var doc in snapshot.docs) {
       await doc.reference.delete();
+    }
+    if (parkingLots.isEmpty) {
+      _isFavoritesEmpty = true;
     }
     setState(() {});
   }
@@ -161,203 +169,285 @@ class FavoritesScreenState extends State<FavoritesScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF03A295),
+        // selectedItemColor: const Color(0xFF03A295),
+        selectedItemColor: const Color(0xff67686b),
         onTap: _onItemTapped,
       ),
       body:
-          // By default, show a loading spinner.
+      (_isFavoritesEmpty) ?
+
+        const Padding(
+          padding: EdgeInsets.only(
+              top: 25), child: Align(
+          alignment: Alignment.topCenter,
+          child: Text(
+            "No parking lots available",
+            style: TextStyle(
+              fontFamily: 'MiriamLibre',
+              fontSize: 17,
+              color: Color(0xFF626463),
+            ),
+          ),
+        ),) :
+
+      // By default, show a loading spinner.
           (parkingLots.isEmpty)
               ? const Center(
                   child: CircularProgressIndicator(),
                 )
               // Render ParkingLot lists
-              : ListView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: parkingLots.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    var data = parkingLots[index];
-                    return Container(
-                      height: 168,
-                      padding: const EdgeInsets.only(top: 6.0),
-                      margin: const EdgeInsets.symmetric(
-                          vertical: 2.5, horizontal: 20),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                              color: Color(0xFFCCC8C8),
-                              blurRadius: 7,
-                              spreadRadius: 1,
-                              offset: Offset(3, 3))
-                        ],
-                      ),
-                      child: Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Column(
-                              children: [
-                                Padding(
-                                    padding: const EdgeInsets.all(15.0),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: Image.network(
-                                        data.image,
-                                        fit: BoxFit.cover,
-                                        width: 90,
-                                        height: 70,
-                                      ),
-                                    )),
-                                const SizedBox(height: 10),
-                                Text(
-                                  "${data.distance.round()} KM Away",
-                                  style: const TextStyle(
-                                    fontFamily: 'MiriamLibre',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: Color(0xFF626463),
-                                  ),
-                                ),
-                              ],
+              : Padding(
+                  padding: const EdgeInsets.only(top: 9),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: parkingLots.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      var data = parkingLots[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LotDetailsScreen(
+                                lotId: data.lot_id,
+                                distance: data.distance,
+                              ),
                             ),
-                            Column(
+                          );
+                        },
+                        child: Container(
+                          height: 164,
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 2.5, horizontal: 20),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: Color(0xFFCCC8C8),
+                                  blurRadius: 7,
+                                  spreadRadius: 1,
+                                  offset: Offset(3, 3))
+                            ],
+                          ),
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Padding(
-                                          padding: const EdgeInsets.only(
-                                              left: 16.0, top: 5.0),
-                                          child: Center(
-                                            child: SizedBox(
-                                              width: 177,
-                                              child: Text(
-                                                data.lot_name,
-                                                style: const TextStyle(
-                                                    fontSize: 25),
-                                              ),
-                                            ),
-                                          )),
-                                      StreamBuilder(
-                                          stream: FirebaseFirestore.instance
-                                              .collection("favorites")
-                                              .where('uid', isEqualTo: user.uid)
-                                              .where('parkingLot',
-                                                  isEqualTo: data.lot_id)
-                                              .snapshots(),
-                                          builder: (BuildContext context,
-                                              AsyncSnapshot snapshot) {
-                                            if (snapshot.data == null) {
-                                              return Text("");
-                                            }
-                                            return IconButton(
-                                                icon: snapshot.data.docs.length == 0
-                                                    ? const Icon(
-                                                        Icons.star_border_outlined,
-                                                        color: Colors.black,
-                                                      )
-                                                    : const Icon(
-                                                        Icons.star,
-                                                        color: Colors.yellow,
-                                                      ),
-                                                onPressed: () => snapshot
-                                                            .data.docs.length == 0
-                                                    ? addToFavorites(
-                                                        user.uid, data.lot_id)
-                                                    : removeFromFavorites(
-                                                        user.uid, data.lot_id));
-                                          }),
-                                    ]),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(right: 28, top: 0),
-                                  child: Text(data.address),
-                                ),
-                                const SizedBox(height: 6),
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 25,
-                                  ),
-                                  child: Text((() {
-                                    if (data.hourly_fare == 1) {
-                                      return "תשלום שעתי";
-                                    }
-                                    return "תשלום חד פעמי";
-                                  })()),
-                                ),
-                                Stack(
+                                Column(
                                   children: [
                                     Padding(
-                                      padding: const EdgeInsets.only(
-                                          right: 210, top: 10),
-                                      child: CircleAvatar(
-                                        radius: 15,
-                                        backgroundColor:
-                                            (data.availability == 1)
-                                                ? Colors.green
-                                                : Colors.deepOrange,
-                                        child: data.availability == 1
-                                            ? const Icon(Icons.check)
-                                            : const Icon(Icons.close),
+                                        padding: const EdgeInsets.all(15.0),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          child: Image.network(
+                                            data.image,
+                                            fit: BoxFit.cover,
+                                            width: 90,
+                                            height: 70,
+                                          ),
+                                        )),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      "${data.distance.round()} KM Away",
+                                      style: const TextStyle(
+                                        fontFamily: 'MiriamLibre',
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: Color(0xFF626463),
                                       ),
                                     ),
-                                    Positioned(
-                                      left: 37,
-                                      top: 18,
-                                      child: Text(
-                                        data.availability == 1
-                                            ? "Available!"
-                                            : "Full",
-                                        style: const TextStyle(
-                                          fontFamily: 'MiriamLibre',
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF626463),
+                                  ],
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: <Widget>[
+                                      Row(children: [
+                                        Expanded(
+                                          child: Directionality(
+                                            textDirection: TextDirection.rtl,
+                                            child:  Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 4, bottom: 3),
+                                              child: Align(
+                                                alignment:
+                                                Alignment.centerRight,
+                                                child: Text(
+                                                  data.lot_name,
+                                                  style: const TextStyle(
+                                                      fontSize: 20),
+                                                ),
+                                              ),),),
+                                        ),
+                                        StreamBuilder(
+                                            stream: FirebaseFirestore.instance
+                                                .collection("favorites")
+                                                .where('uid',
+                                                    isEqualTo: user.uid)
+                                                .where('parkingLot',
+                                                    isEqualTo: data.lot_id)
+                                                .snapshots(),
+                                            builder: (BuildContext context,
+                                                AsyncSnapshot snapshot) {
+                                              if (snapshot.data == null) {
+                                                return Text("");
+                                              }
+                                              return IconButton(
+                                                  icon: snapshot.data.docs
+                                                              .length ==
+                                                          0
+                                                      ? const Icon(
+                                                          Icons
+                                                              .star_border_outlined,
+                                                          color: Colors.black,
+                                                        )
+                                                      : const Icon(
+                                                          Icons.star,
+                                                          color: Colors.yellow,
+                                                        ),
+                                                  onPressed: () => snapshot.data
+                                                              .docs.length ==
+                                                          0
+                                                      ? addToFavorites(
+                                                          user.uid, data.lot_id)
+                                                      : removeFromFavorites(
+                                                          user.uid,
+                                                          data.lot_id));
+                                            }),
+                                      ]),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 19),
+                                        child: Text(
+                                          data.address,
+                                          style: const TextStyle(
+                                              textBaseline:
+                                                  TextBaseline.ideographic),
                                         ),
                                       ),
-                                    ),
-                                    Positioned(
-                                        top: 9,
-                                        left: 135,
-                                        child: data.is_accessible == 1
-                                            ? Image.asset(
-                                                'assets/images/disability.png',
-                                                height: 29,
-                                                width: 29,
-                                                fit: BoxFit.fitWidth,
-                                              )
-                                            : const SizedBox(width: 8)),
-                                    Positioned(
-                                        top: 7,
-                                        left: 185,
-                                        child:
-                                            data.paying_method.contains("מזומן")
-                                                ? Image.asset(
-                                                    'assets/images/cash_credit.png',
-                                                    height: 33,
-                                                    width: 33,
-                                                    fit: BoxFit.fitWidth,
-                                                  )
-                                                : Image.asset(
-                                                    'assets/images/credit_only.png',
-                                                    height: 39,
-                                                    width: 39,
-                                                    fit: BoxFit.fitWidth,
-                                                  )),
-                                  ],
-                                )
+                                      const SizedBox(height: 6),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 19),
+                                        child: Text((() {
+                                          if (data.hourly_fare == true &&
+                                              data.fixed_price != null) {
+                                            return "תשלום שעתי וחד פעמי";
+                                          } else if (data.hourly_fare == true &&
+                                              data.fixed_price == null) {
+                                            return "תשלום שעתי בלבד";
+                                          } else if (data.hourly_fare != true &&
+                                              data.fixed_price != null) {
+                                            return "תשלום חד פעמי";
+                                          }
+                                          return "תשלום בהתאם לשילוט במקום";
+                                        })()),
+                                      ),
+                                      Stack(
+                                        children: [
+                                          Padding(
+                                            padding:
+                                            const EdgeInsets.only(
+                                                right: 210,
+                                                top: 10),
+                                            child: data.availability !=
+                                                null
+                                                ? CircleAvatar(
+                                              radius: 15,
+                                              backgroundColor:
+                                              data.availability! ==
+                                                  1 ? Colors
+                                                  .deepOrange : data.availability! == 0.7
+                                                  ? Colors
+                                                  .orangeAccent
+                                                  : Colors
+                                                  .green,
+                                              child: data.availability! <
+                                                  1
+                                                  ? const Icon(
+                                                  Icons.check,
+                                                  color: Colors
+                                                      .white)
+                                                  : const Icon(
+                                                  Icons.close,
+                                                  color: Colors
+                                                      .white),
+                                            )
+                                                : const CircleAvatar(
+                                                radius: 15,
+                                                backgroundColor:
+                                                Colors.white),
+                                          ),
+                                          data.availability != null
+                                              ? Positioned(
+                                            left: 37,
+                                            top: 18,
+                                            child: Text(
+                                              data.availability! ==
+                                                  1 ? "Full" :  data.availability! == 0.7
+                                                  ? "Almost Full"
+                                                  : "Available!",
+                                              style:
+                                              const TextStyle(
+                                                fontFamily:
+                                                'MiriamLibre',
+                                                fontSize: 15,
+                                                fontWeight:
+                                                FontWeight
+                                                    .bold,
+                                                color: Color(
+                                                    0xFF626463),
+                                              ),
+                                            ),
+                                          )
+                                              : const Center(),
+                                          data.paying_method !=
+                                                  ("בהתאם לשילוט במקום")
+                                              ? Positioned(
+                                                  top: 9,
+                                                  left: 145,
+                                                  child: data.paying_method
+                                                          .contains("מזומן")
+                                                      ? Image.asset(
+                                                          'assets/images/cash_credit.png',
+                                                          height: 33,
+                                                          width: 33,
+                                                          fit: BoxFit.fitWidth,
+                                                        )
+                                                      : Image.asset(
+                                                          'assets/images/credit_only.png',
+                                                          height: 39,
+                                                          width: 39,
+                                                          fit: BoxFit.fitWidth,
+                                                        ))
+                                              : const Center(),
+                                          Positioned(
+                                              top: 11,
+                                              left: 195,
+                                              child: data.is_accessible == true
+                                                  ? Image.asset(
+                                                      'assets/images/disability.png',
+                                                      height: 29,
+                                                      width: 29,
+                                                      fit: BoxFit.fitWidth,
+                                                    )
+                                                  : const Center()),
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
     );
   }

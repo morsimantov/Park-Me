@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:park_me/provider/google_sign_in.dart';
 import 'package:park_me/screens/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:get/get.dart';
+import 'package:park_me/controller/location_controller.dart';
+
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,9 +21,10 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    Get.put(LocationController());
     return ChangeNotifierProvider(
       create: (context) => GoogleSignInProvider(),
-      child: MaterialApp(
+      child: GetMaterialApp(
         navigatorObservers: [FlutterSmartDialog.observer],
         builder: FlutterSmartDialog.init(),
       title: 'Flutter Demo',

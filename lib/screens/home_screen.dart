@@ -4,6 +4,8 @@ import 'package:park_me/provider/google_sign_in.dart';
 import 'package:park_me/screens/search_screen.dart';
 import 'package:park_me/screens/sign_up_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
 import '../model/filter_parameters.dart';
 import '../widgets/category.dart';
 
@@ -27,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (_) => SearchScreen(
                 title: '',
                 filterStatus:
-                    FilterParameters(false, false, false, false, false),
+                    FilterParameters(false, false, false, false, false, false, false),
               ),
             ));
       }
@@ -65,10 +67,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontSize: 16,),
                       ),
                       onPressed: () {
-                        final provider = Provider.of<GoogleSignInProvider>(
-                            context,
-                            listen: false);
-                        provider.logout();
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.confirm,
+                          text: 'Do you want to logout',
+                          confirmBtnText: 'Yes',
+                          cancelBtnText: 'No',
+                          confirmBtnColor: const Color(0xFF03A295),
+                            onConfirmBtnTap: () {
+                              final provider = Provider.of<GoogleSignInProvider>(
+                                  context,
+                                  listen: false);
+                              provider.logout();
+                            }
+                        );
                       },
                     ),
                   ],

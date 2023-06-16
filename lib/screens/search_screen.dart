@@ -1,6 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,12 +9,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:park_me/model/filter_parameters.dart';
 import 'package:park_me/screens/parking_lots_results_screen.dart';
 import 'package:park_me/screens/favorites_screen.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'filter_screen.dart';
 import 'home_screen.dart';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:geocoding/geocoding.dart';
+
 
 class SearchScreen extends StatefulWidget {
   final FilterParameters filterStatus;
@@ -29,18 +33,17 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   int _selectedIndex = 0;
   String wantedLocationAddress = "current location";
+  bool _suggestionSelected = false;
+  bool _showSuggestions = false; // Flag to track suggestion list visibility
 
   // late FilterParameters filterStatus = FilterParameters(false, false, false, false, false);
 
   late GoogleMapController _mapController;
 
-  static const CameraPosition initialPosition =
-      CameraPosition(target: LatLng(31.8980, 34.8094), zoom: 16.0);
+  static late CameraPosition initialPosition = CameraPosition(target: LatLng(32.0798, 34.7683), zoom: 18.0);
 
-  static const CameraPosition targetPosition = CameraPosition(
-      target: LatLng(32.8980, 36.8094), zoom: 16.0, bearing: 192.0, tilt: 60);
+
   Set<Marker> markers = {};
-  late Position _position;
   late Position _currentPosition;
 
   Future<Position> getCurrentPosition() async {
@@ -49,7 +52,9 @@ class _SearchScreenState extends State<SearchScreen> {
     Position currentUserPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     _currentPosition = currentUserPosition;
+    print(currentUserPosition);
     setMarker(_currentPosition!.latitude, _currentPosition!.longitude);
+    initialPosition = CameraPosition(target: LatLng(_currentPosition.latitude, _currentPosition.longitude), zoom: 18.0);
     return currentUserPosition;
   }
 
@@ -61,18 +66,34 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {});
   }
 
+  Future<String> getAddressFromCoordinates(double latitude, double longitude) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+
+      if (placemarks != null && placemarks.isNotEmpty) {
+        Placemark placemark = placemarks[0];
+        String address = '${placemark.street}, ${placemark.locality}, ${placemark.administrativeArea}, ${placemark.country}';
+        return address;
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+
+    return 'Address not found';
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
       if (index == 1) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const HomeScreen(
-              title: '',
-            ),
-          ));
-    }else if (index == 2) {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const HomeScreen(
+                title: '',
+              ),
+            ));
+      } else if (index == 2) {
         Navigator.push(
             context,
             MaterialPageRoute(
@@ -90,6 +111,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    getCurrentPosition();
     _searchController.addListener(() {
       _onChanged();
     });
@@ -101,13 +123,15 @@ class _SearchScreenState extends State<SearchScreen> {
     SmartDialog.dismiss();
   }
 
-  _onChanged() {
-    if (_sessionToken == null) {
-      setState(() {
-        _sessionToken = uuid.v4();
-      });
+  void _onChanged() {
+    if (_suggestionSelected == false) {
+      if (_sessionToken == null) {
+        setState(() {
+          _sessionToken = uuid.v4();
+        });
+      }
+      getSuggestion(_searchController.text);
     }
-    getSuggestion(_searchController.text);
   }
 
   void getSuggestion(String input) async {
@@ -132,6 +156,50 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     } catch (e) {
       // toastMessage('success');
+    }
+  }
+
+  Future<bool> validateAddress(String address) async {
+    try {
+      // Perform geocoding with the provided address
+      List<Location> locations = await locationFromAddress(address);
+
+      // If the geocoding is successful and returns at least one location,
+      // consider the address as valid
+      return locations.isNotEmpty;
+    } catch (e) {
+      // Error occurred during geocoding, so the address is considered invalid
+      return false;
+    }
+  }
+
+  Future<void> onSubmittedResult(value) async {
+    // print("address is:");
+    // print(value);
+    if (value == '' || value == null) {
+      wantedLocationAddress == "current location";
+    } else {
+      wantedLocationAddress = value;
+    }
+    bool isValid = await validateAddress(value);
+    if (isValid || wantedLocationAddress == "current location") {
+      locationFromAddress(wantedLocationAddress);
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ParkingLotsResultsScreen(
+              wantedLocationAddress: wantedLocationAddress,
+              filterStatus: widget.filterStatus,
+            ),
+          ));
+    } else {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Address Not Found',
+        text: 'Please enter a valid address',
+        confirmBtnColor: const Color(0xFF03A295),
+      );
     }
   }
 
@@ -160,33 +228,49 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ],
           currentIndex: _selectedIndex,
-          selectedItemColor: const Color(0xFF03A295),
+          selectedItemColor: const Color(0xff67686b),
           onTap: _onItemTapped,
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          backgroundColor: const Color(0xFF6EB4AD),
-          onPressed: () async {
-            setMarker(_currentPosition!.latitude, _currentPosition!.longitude);
-            _mapController.animateCamera(
-                CameraUpdate.newCameraPosition(CameraPosition(
-                    target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                    zoom: 16)));
-            wantedLocationAddress = "currentLocation";
-            _searchController.clear();
-            setState(() {});
-          },
-          label: const Text("Current Location"),
-          icon: const Icon(Icons.location_history),
+        floatingActionButton: Padding(
+
+          padding:
+          const EdgeInsets.only(right: 189.0),
+          child: FloatingActionButton.extended(
+            backgroundColor: const Color(0xFF6EB4AD),
+            onPressed: () async {
+              setMarker(_currentPosition!.latitude, _currentPosition!.longitude);
+              _mapController.animateCamera(CameraUpdate.newCameraPosition(
+                  CameraPosition(
+                      target: LatLng(_currentPosition!.latitude,
+                          _currentPosition!.longitude),
+                      zoom: 18)));
+              wantedLocationAddress = "current location";
+              _searchController.clear();
+              setState(() {});
+            },
+            label: const Text("Current Location"),
+            icon: const Icon(Icons.location_history),
+          ),
         ),
         body: Stack(
           children: [
             GoogleMap(
               initialCameraPosition: initialPosition,
               markers: markers,
-              zoomControlsEnabled: false,
+              // zoomControlsEnabled: false,
               mapType: MapType.normal,
               onMapCreated: (GoogleMapController controller) {
                 _mapController = controller;
+              },
+              onTap: (LatLng location) {
+                setState(() async {
+                  String address = await getAddressFromCoordinates(location.latitude, location.longitude);
+                  _searchController.value = _searchController.value.copyWith(text: address);
+                  wantedLocationAddress = address;
+                  print(address);
+                  markers.clear();
+                  setMarker(location.latitude, location.longitude);
+                });
               },
             ),
             Column(
@@ -195,15 +279,14 @@ class _SearchScreenState extends State<SearchScreen> {
                 Align(
                   alignment: Alignment.topCenter,
                   child: TextField(
-                    onSubmitted: (value) {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ParkingLotsResultsScreen(
-                              wantedLocationAddress: wantedLocationAddress,
-                              filterStatus: widget.filterStatus,
-                            ),
-                          ));
+                    onTap: () {
+                      setState(() {
+                        _showSuggestions =
+                            true; // Show suggestions on text field tap
+                      });
+                    },
+                    onSubmitted: (value) async {
+                      onSubmittedResult(value);
                     },
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -220,12 +303,14 @@ class _SearchScreenState extends State<SearchScreen> {
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
-                            setMarker(_currentPosition!.latitude, _currentPosition!.longitude);
+                            setMarker(_currentPosition!.latitude,
+                                _currentPosition!.longitude);
                             _mapController.animateCamera(
                                 CameraUpdate.newCameraPosition(CameraPosition(
-                                    target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                                    zoom: 16)));
-                            wantedLocationAddress = "currentLocation";
+                                    target: LatLng(_currentPosition!.latitude,
+                                        _currentPosition!.longitude),
+                                    zoom: 18)));
+                            wantedLocationAddress = "current location";
                           });
                         },
                       ),
@@ -256,15 +341,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             InkWell(
                               child: const Icon(Icons.search),
                               onTap: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ParkingLotsResultsScreen(
-                                        wantedLocationAddress:
-                                            wantedLocationAddress,
-                                        filterStatus: widget.filterStatus,
-                                      ),
-                                    ));
+                                onSubmittedResult(_searchController.value.text);
                               },
                             ),
                           ],
@@ -274,42 +351,50 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    physics: NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: _placeList.length,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () async {
-                          List<Location> locations = await locationFromAddress(
-                              _placeList[index]['description']);
-                          double longitude = locations.last.longitude;
-                          double latitude = locations.last.latitude;
-                          _searchController.value =
-                              _searchController.value.copyWith(
-                            text: _placeList[index]['description'],
-                          );
-                          setState(() {
-                            wantedLocationAddress =
-                                _placeList[index]['description'];
-                            _mapController.animateCamera(
-                                CameraUpdate.newCameraPosition(CameraPosition(
-                                    target: LatLng(latitude, longitude),
-                                    zoom: 16)));
-                            markers.clear();
-                            setMarker(latitude, longitude);
-                          });
-                        },
-                        child: Container(
-                          color: Colors.white,
-                          child: ListTile(
-                            tileColor: Colors.white,
-                            title: Text(_placeList[index]["description"])
-                          ),
+                  child: _showSuggestions // Only show suggestion list when the flag is true
+                      ? ListView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          itemCount: _placeList.length,
+                          itemBuilder: (context, index) {
+                            return GestureDetector(
+                                onTap: () async {
+                                  setState(() {
+                                    _showSuggestions =
+                                        false; // Hide suggestion list
+                                  });
+                                  List<Location> locations =
+                                      await locationFromAddress(
+                                          _placeList[index]['description']);
+                                  double longitude = locations.last.longitude;
+                                  double latitude = locations.last.latitude;
+                                  _searchController.value =
+                                      _searchController.value.copyWith(
+                                    text: _placeList[index]['description'],
+                                  );
+                                  setState(() {
+                                    wantedLocationAddress =
+                                        _placeList[index]['description'];
+                                    _mapController.animateCamera(
+                                        CameraUpdate.newCameraPosition(
+                                            CameraPosition(
+                                                target:
+                                                    LatLng(latitude, longitude),
+                                                zoom: 18)));
+                                    markers.clear();
+                                    setMarker(latitude, longitude);
+                                  });
+                                },
+                                child: Container(
+                                  color: Colors.white,
+                                  child: ListTile(
+                                      tileColor: Colors.white,
+                                      title: Text(
+                                          _placeList[index]["description"])),
+                                ));
+                          },
                         )
-                      );
-                    },
-                  ),
+                      : SizedBox(), // Empty SizedBox when the suggestion list is hidden
                 ),
               ],
             ),

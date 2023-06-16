@@ -1,3 +1,4 @@
+import 'package:park_me/screens/favorites_screen.dart';
 import 'package:park_me/screens/parking_lots_nearby.dart';
 
 import '../model/filter_parameters.dart';
@@ -18,23 +19,23 @@ class Category {
 
 List<Category> categoryList = [
   Category(
-    name: 'Find a spot now',
-    function: (context) => SearchScreen(title: '', filterStatus: FilterParameters(false, false, false, false, false),),
-    thumbnail: 'assets/images/parking_spot.png',
+    name: 'Find a Spot Now',
+    function: (context) => SearchScreen(title: '', filterStatus: FilterParameters(false, false, false, false, false, false, false),),
+    thumbnail: 'assets/images/1.png',
   ),
   Category(
-    name: 'Plan a drive',
+    name: 'Plan a Drive',
     function: (context) => const PlanDriveScreen(title: '',),
-    thumbnail: 'assets/images/route.png',
+    thumbnail: 'assets/images/3.png',
   ),
   Category(
-    name: 'Alert me',
-    function: (context) => const PlanDriveScreen(title: '',),
-    thumbnail: 'assets/images/plan.png',
+    name: 'Favorites\n (Saved Lots)',
+    function: (context) => const FavoritesScreen(),
+    thumbnail: 'assets/images/2.png',
   ),
   Category(
-    name: 'Parking lots nearby',
+    name: 'Parking Lots Nearby',
     function: (context) => const ParkingLotsNearbyScreen(),
-    thumbnail: 'assets/images/parking_area.png',
+    thumbnail: 'assets/images/5.png',
   ),
 ];
