@@ -10,13 +10,11 @@ class LotDetailsAppBar extends StatefulWidget {
   final String image;
   final int lotId;
 
-  const LotDetailsAppBar(
-      {Key? key, required this.lotId, required this.image})
+  const LotDetailsAppBar({Key? key, required this.lotId, required this.image})
       : super(key: key);
 
   @override
   LotDetailsAppBarState createState() => LotDetailsAppBarState();
-
 }
 
 class LotDetailsAppBarState extends State<LotDetailsAppBar> {
@@ -49,7 +47,7 @@ class LotDetailsAppBarState extends State<LotDetailsAppBar> {
   Widget build(BuildContext context) {
     return SliverAppBar(
       systemOverlayStyle:
-      const SystemUiOverlayStyle(statusBarBrightness: Brightness.dark),
+          const SystemUiOverlayStyle(statusBarBrightness: Brightness.dark),
       expandedHeight: 275.0,
       backgroundColor: Colors.white,
       elevation: 0.0,
@@ -103,35 +101,29 @@ class LotDetailsAppBarState extends State<LotDetailsAppBar> {
                   shape: BoxShape.circle,
                   color: Colors.white.withOpacity(0.20),
                 ),
-                child:
-                StreamBuilder(
+                child: StreamBuilder(
                     stream: FirebaseFirestore.instance
                         .collection("favorites")
                         .where('uid', isEqualTo: user.uid)
-                        .where('parkingLot',
-                        isEqualTo: widget.lotId)
+                        .where('parkingLot', isEqualTo: widget.lotId)
                         .snapshots(),
-                    builder: (BuildContext context,
-                        AsyncSnapshot snapshot) {
+                    builder: (BuildContext context, AsyncSnapshot snapshot) {
                       if (snapshot.data == null) {
                         return Text("");
                       }
                       return IconButton(
                           icon: snapshot.data.docs.length == 0
                               ? const Icon(
-                            Icons.star_border_outlined,
-                            color: Colors.white,
-                          )
+                                  Icons.star_border_outlined,
+                                  color: Colors.white,
+                                )
                               : const Icon(
-                            Icons.star,
-                            color: Colors.yellow,
-                          ),
-                          onPressed: () => snapshot
-                              .data.docs.length == 0
-                              ? addToFavorites(
-                              user.uid, widget.lotId)
-                              : removeFromFavorites(
-                              user.uid, widget.lotId));
+                                  Icons.star,
+                                  color: Colors.yellow,
+                                ),
+                          onPressed: () => snapshot.data.docs.length == 0
+                              ? addToFavorites(user.uid, widget.lotId)
+                              : removeFromFavorites(user.uid, widget.lotId));
                     }),
               ),
             ),
@@ -140,6 +132,4 @@ class LotDetailsAppBarState extends State<LotDetailsAppBar> {
       ],
     );
   }
-
 }
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/strings.dart';
 
 class SearchBar extends StatelessWidget {
   const SearchBar({ Key? key }) : super(key: key);
@@ -16,7 +17,7 @@ class SearchBar extends StatelessWidget {
       ),
       child: const TextField(
         decoration: InputDecoration(
-          hintText: "Search",
+          hintText: searchLabel,
           icon: Icon(Icons.search),
           border: InputBorder.none,
         ),

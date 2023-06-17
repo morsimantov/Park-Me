@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,7 +15,8 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:geocoding/geocoding.dart';
-
+import '../utils.dart';
+import '../config/strings.dart';
 
 class SearchScreen extends StatefulWidget {
   final FilterParameters filterStatus;
@@ -31,67 +30,167 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  int _selectedIndex = 0;
-  String wantedLocationAddress = "current location";
-  bool _suggestionSelected = false;
-  bool _showSuggestions = false; // Flag to track suggestion list visibility
+  static const String _appBarTitle = "Find a Parking spot";
+  static const String _currentLocationStr = "Current Location";
+  static const String _loadingMsg = "Loading";
 
-  // late FilterParameters filterStatus = FilterParameters(false, false, false, false, false);
+  late Position _currentPosition;
+  int _selectedIndex = 0;
+  String wantedLocationAddress = "Current Location";
+  bool _suggestionSelected = false;
+  var uuid = const Uuid();
+  String _sessionToken = '1234567890';
+  List<dynamic> _placeList = [];
+  // Flag to track suggestion list visibility
+  bool _showSuggestions = false;
+
 
   late GoogleMapController _mapController;
+  final _searchController = TextEditingController();
 
-  static late CameraPosition initialPosition = CameraPosition(target: LatLng(32.0798, 34.7683), zoom: 18.0);
-
+  static late CameraPosition _initialPosition =
+      CameraPosition(target: LatLng(32.0798, 34.7683), zoom: 18.0);
 
   Set<Marker> markers = {};
-  late Position _currentPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    getCurrentPosition();
+    _searchController.addListener(() {
+      onChanged();
+    });
+    SmartDialog.showLoading(
+      msg: _loadingMsg,
+      maskColor: const Color(0xffebecf3),
+    );
+    getCurrentPosition();
+    SmartDialog.dismiss();
+  }
 
   Future<Position> getCurrentPosition() async {
     LocationPermission permission;
+    // Request location permission from the user
     permission = await Geolocator.requestPermission();
+    // Get the current position of the user
     Position currentUserPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
+    // Store the current position in the _currentPosition variable
     _currentPosition = currentUserPosition;
-    print(currentUserPosition);
+    // Set the marker at the current position on the map
     setMarker(_currentPosition!.latitude, _currentPosition!.longitude);
-    initialPosition = CameraPosition(target: LatLng(_currentPosition.latitude, _currentPosition.longitude), zoom: 18.0);
+    // Set the initial position of the camera on the map
+    _initialPosition = CameraPosition(
+        target: LatLng(_currentPosition.latitude, _currentPosition.longitude),
+        zoom: 18.0);
+    // Return the current position
     return currentUserPosition;
   }
 
   Future<void> setMarker(double lat, double long) async {
+    // Clear existing markers
     markers.clear();
+    // Add a new marker at the specified latitude and longitude
     markers.add(Marker(
-        markerId: const MarkerId('currentLocation'),
+        markerId: const MarkerId(_currentLocationStr),
         position: LatLng(lat, long)));
+    // Update the state to reflect the changes in markers
     setState(() {});
   }
 
-  Future<String> getAddressFromCoordinates(double latitude, double longitude) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
-
-      if (placemarks != null && placemarks.isNotEmpty) {
-        Placemark placemark = placemarks[0];
-        String address = '${placemark.street}, ${placemark.locality}, ${placemark.administrativeArea}, ${placemark.country}';
-        return address;
+  void onChanged() {
+    if (_suggestionSelected == false) {
+      if (_sessionToken == null) {
+        // Generate a new session token if it's null
+        setState(() {
+          _sessionToken = uuid.v4();
+        });
       }
-    } catch (e) {
-      print('Error: $e');
+      // Get place suggestions based on the user's input
+      getSuggestion(_searchController.text);
     }
-
-    return 'Address not found';
   }
 
-  void _onItemTapped(int index) {
+  void getSuggestion(String input) async {
+    const String errorMessage = "Failed to load predictions";
+    // Define the Places API key and type
+    String kPLACES_API_KEY = "AIzaSyC4VmB_2iR5E6wN_mU3Fqcn19HxHqRGTDo";
+    try {
+      // Construct the request URL with the input, API key, and session token
+      String baseURL =
+          'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+      String request =
+          '$baseURL?input=$input&key=$kPLACES_API_KEY&sessiontoken=$_sessionToken';
+      // Send a GET request to the Google Places Autocomplete API
+      var response = await http.get(Uri.parse(request));
+      var data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        // If the response status code is 200 (success), update the state with the predictions
+        setState(() {
+          _placeList = json.decode(response.body)['predictions'];
+        });
+      } else {
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      // Handle the error
+    }
+  }
+
+  Future<void> onSubmittedResult(value) async {
+    const String alertTitle = "Address Not Found";
+    const String alertText = "Please enter a valid address";
+    // If the wanted address is empty or null
+    if (value == '' || value == null) {
+      // Set the wanted location address to the current location address
+      wantedLocationAddress = _currentLocationStr;
+    } else {
+      wantedLocationAddress = value;
+    }
+    // Validate the address
+    bool isValid = await validateAddress(value);
+    /*
+     If the address is valid or the wanted location address is the current
+     location address.
+     */
+
+    if (isValid || wantedLocationAddress == _currentLocationStr) {
+      // Get the location from the address
+      locationFromAddress(wantedLocationAddress);
+      /*
+       Navigate to the ParkingLotsResultsScreen with the wanted location address
+       and filter status,
+       */
+
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ParkingLotsResultsScreen(
+              wantedLocationAddress: wantedLocationAddress,
+              filterStatus: widget.filterStatus,
+            ),
+          ));
+    } else {
+      // Show an error alert
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: alertTitle,
+        text: alertText,
+        confirmBtnColor: const Color(0xFF03A295),
+      );
+    }
+  }
+
+
+  void onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
       if (index == 1) {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const HomeScreen(
-                title: '',
-              ),
+              builder: (_) => const HomeScreen(),
             ));
       } else if (index == 2) {
         Navigator.push(
@@ -103,111 +202,11 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  final _searchController = TextEditingController();
-  var uuid = const Uuid();
-  String _sessionToken = '1234567890';
-  List<dynamic> _placeList = [];
-
-  @override
-  void initState() {
-    super.initState();
-    getCurrentPosition();
-    _searchController.addListener(() {
-      _onChanged();
-    });
-    SmartDialog.showLoading(
-      msg: "loading",
-      maskColor: const Color(0xffebecf3),
-    );
-    getCurrentPosition();
-    SmartDialog.dismiss();
-  }
-
-  void _onChanged() {
-    if (_suggestionSelected == false) {
-      if (_sessionToken == null) {
-        setState(() {
-          _sessionToken = uuid.v4();
-        });
-      }
-      getSuggestion(_searchController.text);
-    }
-  }
-
-  void getSuggestion(String input) async {
-    String kPLACES_API_KEY = "AIzaSyC4VmB_2iR5E6wN_mU3Fqcn19HxHqRGTDo";
-    String type = '(regions)';
-
-    try {
-      String baseURL =
-          'https://maps.googleapis.com/maps/api/place/autocomplete/json';
-      String request =
-          '$baseURL?input=$input&key=$kPLACES_API_KEY&sessiontoken=$_sessionToken';
-      var response = await http.get(Uri.parse(request));
-      var data = json.decode(response.body);
-      print('mydata');
-      print(data);
-      if (response.statusCode == 200) {
-        setState(() {
-          _placeList = json.decode(response.body)['predictions'];
-        });
-      } else {
-        throw Exception('Failed to load predictions');
-      }
-    } catch (e) {
-      // toastMessage('success');
-    }
-  }
-
-  Future<bool> validateAddress(String address) async {
-    try {
-      // Perform geocoding with the provided address
-      List<Location> locations = await locationFromAddress(address);
-
-      // If the geocoding is successful and returns at least one location,
-      // consider the address as valid
-      return locations.isNotEmpty;
-    } catch (e) {
-      // Error occurred during geocoding, so the address is considered invalid
-      return false;
-    }
-  }
-
-  Future<void> onSubmittedResult(value) async {
-    // print("address is:");
-    // print(value);
-    if (value == '' || value == null) {
-      wantedLocationAddress == "current location";
-    } else {
-      wantedLocationAddress = value;
-    }
-    bool isValid = await validateAddress(value);
-    if (isValid || wantedLocationAddress == "current location") {
-      locationFromAddress(wantedLocationAddress);
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ParkingLotsResultsScreen(
-              wantedLocationAddress: wantedLocationAddress,
-              filterStatus: widget.filterStatus,
-            ),
-          ));
-    } else {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: 'Address Not Found',
-        text: 'Please enter a valid address',
-        confirmBtnColor: const Color(0xFF03A295),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Find a Parking spot"),
+          title: const Text(_appBarTitle),
           backgroundColor: const Color(0xFF03A295),
         ),
         backgroundColor: const Color(0xfff5f6fa),
@@ -216,46 +215,45 @@ class _SearchScreenState extends State<SearchScreen> {
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.search),
-              label: 'Search',
+              label: searchLabel,
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
-              label: 'Home',
+              label: homeLabel,
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.star),
-              label: 'Favorites',
+              label: favoritesLabel,
             ),
           ],
           currentIndex: _selectedIndex,
           selectedItemColor: const Color(0xff67686b),
-          onTap: _onItemTapped,
+          onTap: onItemTapped,
         ),
         floatingActionButton: Padding(
-
-          padding:
-          const EdgeInsets.only(right: 189.0),
+          padding: const EdgeInsets.only(right: 189.0),
           child: FloatingActionButton.extended(
             backgroundColor: const Color(0xFF6EB4AD),
             onPressed: () async {
-              setMarker(_currentPosition!.latitude, _currentPosition!.longitude);
+              setMarker(
+                  _currentPosition!.latitude, _currentPosition!.longitude);
               _mapController.animateCamera(CameraUpdate.newCameraPosition(
                   CameraPosition(
                       target: LatLng(_currentPosition!.latitude,
                           _currentPosition!.longitude),
                       zoom: 18)));
-              wantedLocationAddress = "current location";
+              wantedLocationAddress = _currentLocationStr;
               _searchController.clear();
               setState(() {});
             },
-            label: const Text("Current Location"),
+            label: const Text(_currentLocationStr),
             icon: const Icon(Icons.location_history),
           ),
         ),
         body: Stack(
           children: [
             GoogleMap(
-              initialCameraPosition: initialPosition,
+              initialCameraPosition: _initialPosition,
               markers: markers,
               // zoomControlsEnabled: false,
               mapType: MapType.normal,
@@ -264,10 +262,11 @@ class _SearchScreenState extends State<SearchScreen> {
               },
               onTap: (LatLng location) {
                 setState(() async {
-                  String address = await getAddressFromCoordinates(location.latitude, location.longitude);
-                  _searchController.value = _searchController.value.copyWith(text: address);
+                  String address = await getAddressFromCoordinates(
+                      location.latitude, location.longitude);
+                  _searchController.value =
+                      _searchController.value.copyWith(text: address);
                   wantedLocationAddress = address;
-                  print(address);
                   markers.clear();
                   setMarker(location.latitude, location.longitude);
                 });
@@ -292,9 +291,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white,
-                      hintText: "Current location",
+                      hintText: _currentLocationStr,
                       hintStyle: const TextStyle(
-                        fontFamily: 'MiriamLibre',
+                        fontFamily: fontFamilyMiriam,
                       ),
                       focusColor: Colors.white,
                       floatingLabelBehavior: FloatingLabelBehavior.never,
@@ -310,7 +309,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                     target: LatLng(_currentPosition!.latitude,
                                         _currentPosition!.longitude),
                                     zoom: 18)));
-                            wantedLocationAddress = "current location";
+                            wantedLocationAddress = _currentLocationStr;
                           });
                         },
                       ),
@@ -394,7 +393,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                 ));
                           },
                         )
-                      : SizedBox(), // Empty SizedBox when the suggestion list is hidden
+                       // Empty SizedBox when the suggestion list is hidden
+                      : const SizedBox(),
                 ),
               ],
             ),

@@ -9,12 +9,14 @@ import 'package:park_me/model/filter_parameters.dart';
 import 'package:park_me/model/parking_lot.dart';
 import 'package:park_me/screens/lot_details_screen.dart';
 import 'package:park_me/screens/search_screen.dart';
-import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import '../env.sample.dart';
 import 'favorites_screen.dart';
 import 'filter_screen.dart';
 import 'home_screen.dart';
+import '../utils.dart';
+import '../config/strings.dart';
+import '../config/colors.dart';
 
 class ParkingLotsResultsScreen extends StatefulWidget {
   final String wantedLocationAddress;
@@ -31,20 +33,21 @@ class ParkingLotsResultsScreen extends StatefulWidget {
 }
 
 class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
-  late List<ParkingLot> parkingLots = [];
-  late List<ParkingLot> parkingLotsOrigin;
-  late List<ParkingLot> parkingLotsFiltered = [];
+  static const String _appBarTitle = "Find a Parking spot";
+  static const String _currentLocationStr = "Current Location";
+  static const double _fontSize = 15;
+  static const double _fontSizeTitle = 20;
+
+  int _selectedIndex = 0;
+  late List<ParkingLot> _parkingLots = [];
+  late List<ParkingLot> _parkingLotsOrigin = [];
+  late List<ParkingLot> _parkingLotsFiltered = [];
   Position? _currentUserPosition;
   late String _clickedLast = " ";
-  late double wantedLocationLat;
-  late double wantedLocationLong;
+  late double _wantedLocationLat;
+  late double _wantedLocationLong;
   bool _isParkingLotsEmpty = false;
 
-  double? distanceInMeter = 0.0;
-
-  final parkinglotListKey = GlobalKey<ParkingLotsResultsScreenState>();
-  int _selectedIndex = 0;
-  late FilterParameters filterStatus = widget.filterStatus;
   late Color _availabilityButtonColor;
   late Color _availabilityTextColor;
   late Color _distanceButtonColor;
@@ -58,16 +61,333 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
   late Color _discountButtonColor;
   late Color _discountTextColor;
 
-  void _onItemTapped(int index) {
+  final parkinglotListKey = GlobalKey<ParkingLotsResultsScreenState>();
+  late FilterParameters filterStatus = widget.filterStatus;
+  List<Function> orderByFunctions = [];
+  List<Function> filterByFunctions = [];
+
+  void initOrderFunctions() {
+    orderByFunctions.addAll([
+          orderByDistance,
+          orderByDiscount,
+          orderByUnderground,
+          orderByAccessibility,
+          orderByAvailability,
+    ]);
+    filterByFunctions.addAll([
+          (List<ParkingLot> toRemove) => filterByFixedPrice(toRemove),
+          (List<ParkingLot> toRemove) => filterByPayingMethod(toRemove),
+          (List<ParkingLot> toRemove) => filterByPrice(toRemove),
+          (List<ParkingLot> toRemove) => filterByWalkingDistance(toRemove),
+    ]);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize order and filter functions lists
+    initOrderFunctions();
+    // Get parking lots list
+    getParkingLotList();
+    // Set initial button colors according to the filter status
+    _availabilityButtonColor =
+        filterStatus.availability ? pressedButtonColor : unpressedButtonColor2;
+    _availabilityTextColor =
+        filterStatus.availability ? Colors.white : Colors.teal;
+    _distanceButtonColor =
+        filterStatus.distance ? pressedButtonColor : unpressedButtonColor2;
+    _distanceTextColor = filterStatus.distance ? Colors.white : Colors.teal;
+    _undergroundButtonColor =
+        filterStatus.isUnderground ? pressedButtonColor : unpressedButtonColor2;
+    _undergroundTextColor =
+        filterStatus.isUnderground ? Colors.white : Colors.teal;
+    _accessibilityButtonColor =
+        filterStatus.accessibility ? pressedButtonColor : unpressedButtonColor2;
+    _accessibilityTextColor =
+        filterStatus.accessibility ? Colors.white : Colors.teal;
+    _priceButtonColor =
+        filterStatus.fixedPrice ? pressedButtonColor : unpressedButtonColor2;
+    _priceTextColor = filterStatus.fixedPrice ? Colors.white : Colors.teal;
+    _discountButtonColor =
+        filterStatus.discount ? pressedButtonColor : unpressedButtonColor2;
+    _discountTextColor = filterStatus.discount ? Colors.white : Colors.teal;
+  }
+
+  Future<void> getParkingLotList() async {
+    final response = await http.get(Uri.parse(Env.URL_PREFIX));
+    // Decode the response from bytes to String
+    final decodedResponse = utf8.decode(response.bodyBytes);
+    // Convert the decoded response into a list of maps
+    final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
+    // Convert each map item into a ParkingLot object and create a list of ParkingLot objects
+    List<ParkingLot> parkingLotsTemp = items.map<ParkingLot>((json) {
+      return ParkingLot.fromJson(json);
+    }).toList();
+    // Update the state with the new parking lots
+    setState(() {
+      _parkingLotsOrigin.addAll(parkingLotsTemp);
+    });
+    // Get distances for each parking lot
+    await getLotDistances();
+    // Sort the parking lots by distance
+    _parkingLotsOrigin.sort((a, b) => a.distance.compareTo(b.distance));
+    // Take the first 20 parking lots
+    _parkingLotsOrigin = _parkingLotsOrigin.take(20).toList();
+    // Create a list that will contain the lots after being filtered
+    _parkingLotsFiltered = List.of(_parkingLotsOrigin);
+    // Create a list that will contain the lots that will be presented to the user
+    _parkingLots = List.of(_parkingLotsOrigin);
+    // Order the parking lot list
+    orderParkingLotList();
+  }
+
+  Future getLotDistances() async {
+    double? distanceInMeter = 0.0;
+    LocationPermission permission;
+    // Request permission for location access
+    permission = await Geolocator.requestPermission();
+    // Get current location coordinates or coordinates for the wanted location address
+    if (widget.wantedLocationAddress == _currentLocationStr) {
+      _currentUserPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      _wantedLocationLat = _currentUserPosition!.latitude;
+      _wantedLocationLong = _currentUserPosition!.longitude;
+    } else {
+      List<Location> locations = await locationFromAddress(widget.wantedLocationAddress);
+      _wantedLocationLat = locations.first.latitude;
+      _wantedLocationLong = locations.first.longitude;
+    }
+    // Calculate distance for each parking lot
+    for (var parkingLotItem in _parkingLotsOrigin) {
+      final address = parkingLotItem.address;
+      List<Location> locations = await locationFromAddress(address);
+      Location lotLocation = locations.first;
+      double parkingLotLat = lotLocation.latitude;
+      double parkingLotLng = lotLocation.longitude;
+      // Calculate the distance between the wanted location and parking lot
+      distanceInMeter = await Geolocator.distanceBetween(
+        _wantedLocationLat,
+        _wantedLocationLong,
+        parkingLotLat,
+        parkingLotLng,
+      );
+      // Round the distance and update the parking lot's distance value
+      var distance = distanceInMeter?.round().toInt();
+      parkingLotItem.distance = (distance! / 1000);
+      // Update the state to reflect the new distance value
+      setState(() {});
+    }
+  }
+
+  void orderParkingLotList() {
+    _isParkingLotsEmpty = false;
+    // Save the list of lots in a list that's going to be filtered and reordered
+    _parkingLotsFiltered = List.of(_parkingLots);
+    // Create a list of all the lots that going to be removed after filter
+    List<ParkingLot> toRemove = [];
+    // First, order the list by distance
+    _parkingLotsFiltered.sort((a, b) => a.distance.compareTo(b.distance));
+    // Execute all order and filter functions according to the filter status
+    for (var function in orderByFunctions) {
+      function();
+    }
+    for (var function in filterByFunctions) {
+      function(toRemove);
+    }
+    // Remove all lots that were filtered through the filter functions
+    _parkingLotsFiltered.removeWhere((lot) => toRemove.contains(lot));
+    /*
+    After ordering and filtering the list by the user's choices, order by the
+    list according to the user's last choice (last button that he clicked)
+     */
+
+    orderByLastClick(_clickedLast, toRemove);
+    // Copy the filtered list to the list of parking lots
+    _parkingLots = List.of(_parkingLotsFiltered);
+    // If the list of parking lots empty after filtered
+    if (_parkingLots.isEmpty) {
+      _isParkingLotsEmpty = true;
+    }
+    setState(() {});
+  }
+
+  void orderByLastClick(String clickedLast, List<ParkingLot> toRemove) {
+    switch (clickedLast) {
+      case availabilityButton:
+        orderByAvailability();
+        break;
+      case accessibilityButton:
+        orderByAccessibility();
+        break;
+      case distanceButton:
+        orderByDistance();
+        break;
+      case discountButton:
+        orderByDiscount();
+        break;
+      case fixedPriceButton:
+        filterByFixedPrice(toRemove);
+        break;
+      case undergroundButton:
+        orderByUnderground();
+        break;
+      default:
+        break;
+    }
+  }
+
+  void orderByAvailability() {
+    if (filterStatus.availability) {
+      // Sort the parking lots by availability, with null values defaulting to 0.8
+      _parkingLotsFiltered.sort((a, b) => (a.availability ?? 0.8).compareTo(b.availability ?? 0.8));
+    }
+  }
+
+  void orderByAccessibility() {
+    if (filterStatus.accessibility) {
+      // Sort the parking lots by accessibility, with true values coming first
+      _parkingLotsFiltered.sort((a, b) => a.is_accessible != true ? 1 : 0);
+    }
+  }
+
+  void orderByDistance() {
+    if (filterStatus.distance) {
+      // Sort the parking lots by distance
+      _parkingLotsFiltered.sort((a, b) => a.distance.compareTo(b.distance));
+    }
+  }
+
+  void orderByUnderground() {
+    if (filterStatus.isUnderground) {
+      // Sort the parking lots by underground status, with true values coming first
+      _parkingLotsFiltered.sort((a, b) => a.is_underground != true ? 1 : 0);
+    }
+  }
+
+  void orderByDiscount() {
+    if (filterStatus.discount) {
+      // Sort the parking lots by discount availability, with real values coming first
+      _parkingLotsFiltered.sort((a, b) => a.resident_discount == null ? 1 : 0);
+    }
+  }
+
+  void filterByWalkingDistance(List<ParkingLot> toRemove) {
+    if (filterStatus.walkingDistance != null) {
+      // Convert walking distance from meters to kilometers
+      double distanceInKm = convertToKilometers(filterStatus.walkingDistance!);
+      // Remove parking lots that exceed the walking distance
+      for (var parkingLot in _parkingLotsFiltered) {
+        if (parkingLot.distance > distanceInKm) {
+          toRemove.add(parkingLot);
+        }
+      }
+      // Sort the parking lots by distance
+      _parkingLotsFiltered.sort((a, b) => a.distance.compareTo(b.distance));
+    }
+  }
+
+  void filterByPrice(List<ParkingLot> toRemove) {
+    if (filterStatus.price != null) {
+      // Remove parking lots based on price criteria
+      for (var parkingLot in _parkingLotsFiltered) {
+        if (parkingLot.fixed_price != null) {
+          if (parkingLot.fixed_price!.toDouble() > filterStatus.price!) {
+            toRemove.add(parkingLot);
+          }
+        }
+        if (parkingLot.hourly_fare != null) {
+          // If the parking lot hourly fare is less than 15 per hour (=10 per hour)
+          if (filterStatus.price! < 15) {
+            toRemove.add(parkingLot);
+          }
+          // If the parking lot hourly fare is less than 20 per hour (=10/15 per hour)
+          if (filterStatus.price! < 20) {
+            // If the parking lot hourly fare is 16 per hour (more than the filtered price)
+            if (parkingLot.fare?.contains("16") ?? false){
+              toRemove.add(parkingLot);
+            }
+          }
+        }
+      }
+      /*
+       Sort the parking lots by price such that fixed prices come first and
+       ranked from low to high.
+       */
+
+      _parkingLotsFiltered.sort((a, b) => a.hourly_fare != true ? 0 : 1);
+      _parkingLotsFiltered.sort((a, b) => (a.fixed_price ?? 100).compareTo(b.fixed_price ?? 100));
+    }
+  }
+
+  void filterByFixedPrice(List<ParkingLot> toRemove) {
+    if (filterStatus.fixedPrice) {
+      // Remove parking lots that don't have a fixed price
+      for (var parkingLot in _parkingLotsFiltered) {
+        if (parkingLot.fixed_price == null) {
+          toRemove.add(parkingLot);
+        }
+      }
+      /*
+       Sort the parking lots by hourly fare (non true values come first),
+       and then by fixed price (non null values come first).
+       The outcome would be the fixed prices first and then fixed+hourly fare.
+       */
+
+      _parkingLotsFiltered.sort((a, b) => a.hourly_fare != true ? 0 : 1);
+      _parkingLotsFiltered.sort((a, b) => a.fixed_price == null ? 1 : 0);
+    }
+
+  }
+
+  // Filter parking lots based on payment method criteria
+  void filterByPayingMethod(List<ParkingLot> toRemove) {
+    // If the user marked only payment by cash
+    if (filterStatus.cash && !filterStatus.credit && !filterStatus.pango) {
+      for (var parkingLot in _parkingLotsFiltered) {
+        if (parkingLot.paying_method == creditOnly) {
+          toRemove.add(parkingLot);
+        }
+      }
+      /*
+       Sort the parking lots by payment method, with cash prioritized and then
+       cash+credit options.
+       */
+
+      _parkingLotsFiltered.sort((a, b) => a.paying_method == cashAndCreditH ? 1 : 0);
+      _parkingLotsFiltered.sort((a, b) => a.paying_method == cash ? 0 : 1);
+    }
+    // If the user marked payment by both credit and cash
+    else if (filterStatus.cash && filterStatus.credit || filterStatus.cash && filterStatus.pango) {
+      // Sort the parking lots by payment method, cash+credit options prioritized
+      _parkingLotsFiltered.sort((a, b) => a.paying_method == unknownPayingMethod ? 0 : 1);
+      _parkingLotsFiltered.sort((a, b) => a.paying_method == cashAndCreditH ? 0 : 1);
+    }
+    // If the user marked only payment by credit or by pango
+    else if ((!filterStatus.cash && filterStatus.credit) ||
+        (!filterStatus.cash && filterStatus.pango)) {
+      for (var parkingLot in _parkingLotsFiltered) {
+        if (parkingLot.paying_method == cash) {
+          toRemove.add(parkingLot);
+        }
+      }
+      /*
+       Sort the parking lots by payment method, with credit-only options
+       prioritized and then cash+credit.
+       */
+
+      _parkingLotsFiltered.sort((a, b) => a.paying_method == cashAndCreditH ? 1 : 0);
+      _parkingLotsFiltered.sort((a, b) => a.paying_method == creditOnly ? 0 : 1);
+    }
+  }
+
+
+  void onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
       if (index == 1) {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const HomeScreen(
-                title: '',
-              ),
+              builder: (_) => const HomeScreen(),
             ));
       }
       if (index == 0) {
@@ -76,7 +396,8 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
             MaterialPageRoute(
               builder: (_) => SearchScreen(
                 title: '',
-                filterStatus: FilterParameters(false, false, false, false, false, false, false),
+                filterStatus: FilterParameters(
+                    false, false, false, false, false, false, false),
               ),
             ));
       } else if (index == 2) {
@@ -90,292 +411,12 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    parkingLotsOrigin = [];
-    getParkingLotList();
-    _availabilityButtonColor = filterStatus.availability
-        ? const Color(0xFF55C0B3)
-        : const Color(0xfff6f7f9);
-    _availabilityTextColor =
-        filterStatus.availability ? Colors.white : Colors.teal;
-    _distanceButtonColor = filterStatus.distance
-        ? const Color(0xFF55C0B3)
-        : const Color(0xfff6f7f9);
-    _distanceTextColor = filterStatus.distance ? Colors.white : Colors.teal;
-    _undergroundButtonColor = filterStatus.isUnderground
-        ? const Color(0xFF55C0B3)
-        : const Color(0xfff6f7f9);
-    _undergroundTextColor =
-        filterStatus.isUnderground ? Colors.white : Colors.teal;
-    _accessibilityButtonColor = filterStatus.accessibility
-        ? const Color(0xFF55C0B3)
-        : const Color(0xfff6f7f9);
-    _accessibilityTextColor =
-        filterStatus.accessibility ? Colors.white : Colors.teal;
-    _priceButtonColor = filterStatus.fixedPrice
-        ? const Color(0xFF55C0B3)
-        : const Color(0xfff6f7f9);
-    _priceTextColor = filterStatus.fixedPrice ? Colors.white : Colors.teal;
-    _discountButtonColor = filterStatus.discount
-        ? const Color(0xFF55C0B3)
-        : const Color(0xfff6f7f9);
-    _discountTextColor =
-    filterStatus.discount ? Colors.white : Colors.teal;
-  }
-
-  Future<void> getParkingLotList() async {
-    final response = await http.get(Uri.parse(Env.URL_PREFIX));
-    // final response =
-    // await http.get(Uri.parse("${Env.URL_PREFIX}/lots"));
-    print("response");
-    final decodedResponse = utf8.decode(response.bodyBytes);
-    final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
-    List<ParkingLot> parkingLotsTemp = items.map<ParkingLot>((json) {
-      return ParkingLot.fromJson(json);
-    }).toList();
-    setState(() {
-      parkingLotsOrigin.addAll(parkingLotsTemp);
-    });
-    print("number of parking lots: ${parkingLotsOrigin.length}");
-    await _getTheDistance();
-    parkingLotsOrigin.sort((a, b) => a.distance.compareTo(b.distance));
-    parkingLotsOrigin = parkingLotsOrigin.take(20).toList();
-    parkingLotsFiltered = List.of(parkingLotsOrigin);
-    parkingLots = List.of(parkingLotsOrigin);
-    orderParkingLotList();
-  }
-
-  Future<void> addToFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    String fid = const Uuid().v4();
-    await _firestore.collection('favorites').doc(fid).set({
-      'fid': fid,
-      'uid': uid,
-      'parkingLot': lot_id,
-    });
-  }
-
-  Future<void> removeFromFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    var snapshot = await _firestore
-        .collection("favorites")
-        .where('uid', isEqualTo: uid)
-        .where('parkingLot', isEqualTo: lot_id)
-        .get();
-    for (var doc in snapshot.docs) {
-      await doc.reference.delete();
-    }
-  }
-
-  Future _getTheDistance() async {
-    LocationPermission permission;
-    permission = await Geolocator.requestPermission();
-    print(widget.wantedLocationAddress);
-    if (widget.wantedLocationAddress == "current location") {
-      _currentUserPosition = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-      print('current User Position: ');
-      print(_currentUserPosition);
-      wantedLocationLat = _currentUserPosition!.latitude;
-      wantedLocationLong = _currentUserPosition!.longitude;
-    } else {
-      List<Location> locations =
-          await locationFromAddress(widget.wantedLocationAddress);
-      wantedLocationLat = locations.first.latitude;
-      wantedLocationLong = locations.first.longitude;
-    }
-    // print(wantedLocationLat);
-    for (var parkingLotItem in parkingLotsOrigin) {
-      final address = parkingLotItem.address;
-      List<Location> locations = await locationFromAddress(address);
-      Location lotLocation = locations.first;
-      double parkingLotLat = lotLocation.latitude;
-      double parkingLotLng = lotLocation.longitude;
-      // print(parkingLotItem.lot_name);
-      // print(parkingLotLat);
-      distanceInMeter = await Geolocator.distanceBetween(
-        wantedLocationLat,
-        wantedLocationLong,
-        parkingLotLat,
-        parkingLotLng,
-      );
-      var distance = distanceInMeter?.round().toInt();
-      parkingLotItem.distance = (distance! / 1000);
-      setState(() {});
-    }
-  }
-
-  void orderParkingLotList() {
-    _isParkingLotsEmpty = false;
-    parkingLotsFiltered = List.of(parkingLots);
-    List<ParkingLot> toRemove = [];
-    parkingLotsFiltered.sort((a, b) => a.distance.compareTo(b.distance));
-    orderByDistance();
-    orderByDiscount();
-    orderByFixedPrice(toRemove);
-    orderByPayingMethod(toRemove);
-    orderByPrice(toRemove);
-    orderByUnderground(toRemove);
-    orderByFixedPrice(toRemove);
-    orderByWalkingDistance(toRemove);
-    orderByAccessibility();
-    orderByAvailability();
-    parkingLotsFiltered.removeWhere((lot) => toRemove.contains(lot));
-    switch (_clickedLast) {
-      case 'availability':
-        orderByAvailability();
-        break;
-      case 'accessibility':
-        orderByAccessibility();
-        break;
-      case 'distance':
-        orderByDistance();
-        break;
-      case 'discount':
-        orderByDiscount();
-        break;
-      case 'fixed price':
-        orderByFixedPrice(toRemove);
-        break;
-      case 'underground':
-        orderByUnderground(toRemove);
-        break;
-      default:
-        break;
-    }
-    parkingLots = List.of(parkingLotsFiltered);
-    if (parkingLots.isEmpty) {
-      _isParkingLotsEmpty = true;
-    }
-    setState(() {});
-  }
-
-
-  void orderByAvailability() {
-    if (filterStatus.availability) {
-      parkingLotsFiltered.sort((a, b) => (a.availability ?? 0.8).compareTo(b.availability ?? 0.8));
-    }
-  }
-
-  void orderByAccessibility() {
-    if (filterStatus.accessibility) {
-      parkingLotsFiltered.sort((a, b) => a.is_accessible != true ? 1 : 0);
-    }
-  }
-
-  void orderByDistance() {
-    if (filterStatus.distance) {
-      parkingLotsFiltered.sort((a, b) => a.distance.compareTo(b.distance));
-    }
-  }
-
-
-  void orderByWalkingDistance(List<ParkingLot> toRemove) {
-    if (filterStatus.walkingDistance != null) {
-      double distanceInKm = convertToKilometers(filterStatus.walkingDistance!);
-      for (var parkingLot in parkingLotsFiltered) {
-        if (parkingLot.distance > distanceInKm) {
-          toRemove.add(parkingLot);
-        }
-      }
-      parkingLotsFiltered.sort((a, b) => a.distance.compareTo(b.distance));
-    }
-  }
-  void orderByUnderground(List<ParkingLot> toRemove) {
-    if (filterStatus.isUnderground) {
-      parkingLotsFiltered.sort((a, b) => a.is_underground != true ? 1 : 0);
-      // for (var parkingLot in parkingLotsFiltered) {
-      //   if (parkingLot.is_underground != null &&
-      //       parkingLot.is_underground == false) {
-      //     toRemove.add(parkingLot);
-      //   }
-      // }
-    }
-  }
-
-  void orderByPrice(List<ParkingLot> toRemove) {
-    if (filterStatus.price != null) {
-      for (var parkingLot in parkingLotsFiltered) {
-        if (parkingLot.fixed_price != null) {
-          if (parkingLot.fixed_price!.toDouble() > filterStatus.price!) {
-            toRemove.add(parkingLot);
-          }
-        }
-        if (parkingLot.hourly_fare != null) {
-          if (filterStatus.price! < 16) {
-            toRemove.add(parkingLot);
-          }
-        }
-      }
-      parkingLotsFiltered.sort((a, b) => a.hourly_fare != true ? 0 : 1);
-      parkingLotsFiltered.sort(
-              (a, b) => (a.fixed_price ?? 100).compareTo(b.fixed_price ?? 100));
-    }
-  }
-  void orderByFixedPrice(List<ParkingLot> toRemove) {
-    if (filterStatus.fixedPrice) {
-      for (var parkingLot in parkingLotsFiltered) {
-        if (parkingLot.fixed_price == null) {
-          toRemove.add(parkingLot);
-        }
-      }
-      parkingLotsFiltered.sort((a, b) => a.hourly_fare != true ? 0 : 1);
-      parkingLotsFiltered.sort((a, b) => a.fixed_price == null ? 1 : 0);
-    }
-  }
-  void orderByDiscount() {
-    if (filterStatus.discount) {
-      parkingLotsFiltered.sort((a, b) => a.resident_discount == null ? 1 : 0);
-    }
-  }
-
-  void orderByPayingMethod(List<ParkingLot> toRemove) {
-    // if the user marked only payment by cash
-    if (filterStatus.cash && !filterStatus.credit && !filterStatus.pango) {
-      for (var parkingLot in parkingLotsFiltered) {
-        if (parkingLot.paying_method == "אשראי ואמצעים דיגיטליים בלבד") {
-          toRemove.add(parkingLot);
-        }
-      }
-      parkingLotsFiltered.sort(
-              (a, b) =>  a.paying_method == "מזומן + אשראי (חניון ממוכן)" ? 1 : 0);
-      parkingLotsFiltered.sort((a, b) => a.paying_method == "מזומן" ? 0 : 1);
-    }
-    // if the user marked payment by both credit and cash
-    else if (filterStatus.cash && filterStatus.credit) {
-      parkingLotsFiltered.sort(
-              (a, b) => a.paying_method == "בהתאם לשילוט במקום" ? 0 : 1);
-      parkingLotsFiltered.sort(
-              (a, b) => a.paying_method == "מזומן + אשראי (חניון ממוכן)" ? 0 : 1);
-      // if the user marked only payment by credit or by pango
-    } else if ((!filterStatus.cash && filterStatus.credit) || (!filterStatus.cash && filterStatus.pango)) {
-      for (var parkingLot in parkingLotsFiltered) {
-        if (parkingLot.paying_method == "מזומן") {
-          toRemove.add(parkingLot);
-        }
-      }
-      parkingLotsFiltered.sort(
-              (a, b) => a.paying_method == "מזומן + אשראי (חניון ממוכן)" ? 1 : 0);
-      parkingLotsFiltered.sort(
-              (a, b) => a.paying_method == "אשראי ואמצעים דיגיטליים בלבד" ? 0 : 1);
-    }
-  }
-
-  double convertToKilometers(double timeInMinutes) {
-    double walkingSpeed = 5.0; // 5 km/h is an average walking speed
-    double timeInHours = timeInMinutes / 60;
-    double distanceInKm = walkingSpeed * timeInHours;
-    return distanceInKm;
-  }
-
-  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser!;
     return Scaffold(
-      backgroundColor: const Color(0xfff6f7f9),
+      backgroundColor: unpressedButtonColor2,
       appBar: AppBar(
-        title: const Text("Find a Parking spot"),
+        title: const Text(_appBarTitle),
         backgroundColor: const Color(0xFF03A295),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -383,20 +424,20 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: 'Search',
+            label: searchLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: homeLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star),
-            label: 'Favorites',
+            label: favoritesLabel,
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: const Color(0xff67686b),
-        onTap: _onItemTapped,
+        onTap: onItemTapped,
       ),
       body: ListView(
         children: <Widget>[
@@ -435,21 +476,20 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                         vertical: 7.0, horizontal: 8.0),
                     child: OutlinedButton(
                       onPressed: () {
-                        if (_availabilityButtonColor ==
-                            const Color(0xfff6f7f9)) {
+                        if (_availabilityButtonColor == unpressedButtonColor2) {
                           setState(() {
-                            _availabilityButtonColor = const Color(0xFF55C0B3);
+                            _availabilityButtonColor = pressedButtonColor;
                             _availabilityTextColor = Colors.white;
                             filterStatus.availability = true;
-                            _clickedLast = "availability";
+                            _clickedLast = availabilityButton;
                           });
                           orderParkingLotList();
                         } else {
                           setState(() {
-                            _availabilityButtonColor = const Color(0xfff6f7f9);
+                            _availabilityButtonColor = unpressedButtonColor2;
                             _availabilityTextColor = Colors.teal;
                             filterStatus.availability = false;
-                            parkingLots = List.of(parkingLotsOrigin);
+                            _parkingLots = List.of(_parkingLotsOrigin);
                           });
                           orderParkingLotList();
                         }
@@ -460,7 +500,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                             borderRadius: BorderRadius.circular(30)),
                       ),
                       child: Text(
-                        'Availability',
+                        availabilityButton,
                         style: TextStyle(
                           color: _availabilityTextColor,
                         ),
@@ -472,20 +512,20 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                         vertical: 7.0, horizontal: 8.0),
                     child: OutlinedButton(
                       onPressed: () {
-                        if (_distanceButtonColor == const Color(0xfff6f7f9)) {
+                        if (_distanceButtonColor == unpressedButtonColor2) {
                           setState(() {
-                            _distanceButtonColor = const Color(0xFF55C0B3);
+                            _distanceButtonColor = pressedButtonColor;
                             _distanceTextColor = Colors.white;
                             filterStatus.distance = true;
-                            _clickedLast = "distance";
+                            _clickedLast = distanceButton;
                           });
                           orderParkingLotList();
                         } else {
                           setState(() {
-                            _distanceButtonColor = const Color(0xfff6f7f9);
+                            _distanceButtonColor = unpressedButtonColor2;
                             _distanceTextColor = Colors.teal;
                             filterStatus.distance = false;
-                            parkingLots = List.of(parkingLotsOrigin);
+                            _parkingLots = List.of(_parkingLotsOrigin);
                           });
                           orderParkingLotList();
                         }
@@ -496,7 +536,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                             borderRadius: BorderRadius.circular(30)),
                       ),
                       child: Text(
-                        'Distance',
+                        distanceButton,
                         style: TextStyle(
                           color: _distanceTextColor,
                         ),
@@ -508,21 +548,20 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                         vertical: 8.0, horizontal: 8.0),
                     child: OutlinedButton(
                       onPressed: () {
-                        if (_undergroundButtonColor ==
-                            const Color(0xfff6f7f9)) {
+                        if (_undergroundButtonColor == unpressedButtonColor2) {
                           setState(() {
-                            _undergroundButtonColor = const Color(0xFF55C0B3);
+                            _undergroundButtonColor = pressedButtonColor;
                             _undergroundTextColor = Colors.white;
                             filterStatus.isUnderground = true;
-                            _clickedLast = "underground";
+                            _clickedLast = undergroundButton;
                           });
                           orderParkingLotList();
                         } else {
                           setState(() {
-                            _undergroundButtonColor = const Color(0xfff6f7f9);
+                            _undergroundButtonColor = unpressedButtonColor2;
                             _undergroundTextColor = Colors.teal;
                             filterStatus.isUnderground = false;
-                            parkingLots = List.of(parkingLotsOrigin);
+                            _parkingLots = List.of(_parkingLotsOrigin);
                           });
                           orderParkingLotList();
                         }
@@ -533,7 +572,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                             borderRadius: BorderRadius.circular(30)),
                       ),
                       child: Text(
-                        'Underground',
+                        undergroundButton,
                         style: TextStyle(
                           color: _undergroundTextColor,
                         ),
@@ -545,21 +584,20 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                         vertical: 8.0, horizontal: 8.0),
                     child: OutlinedButton(
                       onPressed: () {
-                        if (_discountButtonColor ==
-                            const Color(0xfff6f7f9)) {
+                        if (_discountButtonColor == unpressedButtonColor2) {
                           setState(() {
-                            _discountButtonColor = const Color(0xFF55C0B3);
+                            _discountButtonColor = pressedButtonColor;
                             _discountTextColor = Colors.white;
                             filterStatus.discount = true;
-                            _clickedLast = "discount";
+                            _clickedLast = discountButton;
                           });
                           orderParkingLotList();
                         } else {
                           setState(() {
-                            _discountButtonColor = const Color(0xfff6f7f9);
+                            _discountButtonColor = unpressedButtonColor2;
                             _discountTextColor = Colors.teal;
                             filterStatus.discount = false;
-                            parkingLots = List.of(parkingLotsOrigin);
+                            _parkingLots = List.of(_parkingLotsOrigin);
                           });
                           orderParkingLotList();
                         }
@@ -570,10 +608,10 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                             borderRadius: BorderRadius.circular(30)),
                       ),
                       child: Text(
-                        'Resident Discount',
+                        discountButton,
                         style: TextStyle(
-                            color: _discountTextColor,
-                            ),
+                          color: _discountTextColor,
+                        ),
                       ),
                     ),
                   ),
@@ -582,20 +620,20 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                         vertical: 8.0, horizontal: 8.0),
                     child: OutlinedButton(
                       onPressed: () {
-                        if (_priceButtonColor == const Color(0xfff6f7f9)) {
+                        if (_priceButtonColor == unpressedButtonColor2) {
                           setState(() {
-                            _priceButtonColor = const Color(0xFF55C0B3);
+                            _priceButtonColor = pressedButtonColor;
                             _priceTextColor = Colors.white;
                             filterStatus.fixedPrice = true;
                           });
                           orderParkingLotList();
                         } else {
                           setState(() {
-                            _priceButtonColor = const Color(0xfff6f7f9);
+                            _priceButtonColor = unpressedButtonColor2;
                             _priceTextColor = Colors.teal;
                             filterStatus.fixedPrice = false;
                           });
-                          parkingLots = List.of(parkingLotsOrigin);
+                          _parkingLots = List.of(_parkingLotsOrigin);
                           orderParkingLotList();
                         }
                       },
@@ -605,7 +643,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                             borderRadius: BorderRadius.circular(30)),
                       ),
                       child: Text(
-                        'Fixed Price',
+                        fixedPriceButton,
                         style: TextStyle(
                           color: _priceTextColor,
                         ),
@@ -618,17 +656,17 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                     child: OutlinedButton(
                       onPressed: () {
                         if (_accessibilityButtonColor ==
-                            const Color(0xfff6f7f9)) {
+                            unpressedButtonColor2) {
                           setState(() {
-                            _accessibilityButtonColor = const Color(0xFF55C0B3);
+                            _accessibilityButtonColor = pressedButtonColor;
                             _accessibilityTextColor = Colors.white;
                             filterStatus.accessibility = true;
-                            parkingLots = List.of(parkingLotsOrigin);
+                            _parkingLots = List.of(_parkingLotsOrigin);
                           });
                           orderParkingLotList();
                         } else {
                           setState(() {
-                            _accessibilityButtonColor = const Color(0xfff6f7f9);
+                            _accessibilityButtonColor = unpressedButtonColor2;
                             _accessibilityTextColor = Colors.teal;
                             filterStatus.accessibility = false;
                           });
@@ -641,7 +679,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                             borderRadius: BorderRadius.circular(30)),
                       ),
                       child: Text(
-                        'Accessibility',
+                        accessibilityButton,
                         style: TextStyle(
                           color: _accessibilityTextColor,
                         ),
@@ -653,7 +691,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
           Center(
             child:
                 // By default, show a loading spinner.
-                (parkingLotsOrigin.isEmpty)
+                (_parkingLotsOrigin.isEmpty)
                     ? SizedBox(
                         height: MediaQuery.of(context).size.height / 1.4,
                         child: const Center(
@@ -665,304 +703,348 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
                             child: Padding(
                               padding: EdgeInsets.only(top: 19),
                               child: Text(
-                                "No parking lots available",
+                                noLotsAvailable,
                                 style: TextStyle(
-                                  fontFamily: 'MiriamLibre',
+                                  fontFamily: fontFamilyMiriam,
                                   fontSize: 17,
                                   color: Color(0xFF626463),
                                 ),
                               ),
                             ),
-                          ) : (parkingLots.isEmpty)
-                    ? SizedBox(
-                  height: MediaQuery.of(context).size.height / 1.4,
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-                        // Render ParkingLot lists
-                        : ListView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: parkingLots.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              var data = parkingLots[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => LotDetailsScreen(
-                                        lotId: data.lot_id,
-                                        distance: data.distance,
+                          )
+                        : (_parkingLots.isEmpty)
+                            ? SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height / 1.4,
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            // Render ParkingLot lists
+                            : ListView.builder(
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                itemCount: _parkingLots.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  var data = _parkingLots[index];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              LotDetailsScreen(
+                                            lotId: data.lot_id,
+                                            distance: data.distance,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      height: 164,
+                                      margin: const EdgeInsets.symmetric(
+                                          vertical: 2.5, horizontal: 20),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                              color: Color(0xFFCCC8C8),
+                                              blurRadius: 7,
+                                              spreadRadius: 1,
+                                              offset: Offset(3, 3))
+                                        ],
                                       ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  height: 164,
-                                  margin: const EdgeInsets.symmetric(
-                                      vertical: 2.5, horizontal: 20),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                          color: Color(0xFFCCC8C8),
-                                          blurRadius: 7,
-                                          spreadRadius: 1,
-                                          offset: Offset(3, 3))
-                                    ],
-                                  ),
-                                  child: Card(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Column(
-                                          children: [
-                                            Padding(
-                                                padding:
-                                                    const EdgeInsets.all(15.0),
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                  child: Image.network(
-                                                    data.image,
-                                                    fit: BoxFit.cover,
-                                                    width: 90,
-                                                    height: 70,
+                                      child: Card(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Column(
+                                              children: [
+                                                Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            15.0),
+                                                    child: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                      child: Image.network(
+                                                        data.image,
+                                                        fit: BoxFit.cover,
+                                                        width: 90,
+                                                        height: 70,
+                                                      ),
+                                                    )),
+                                                const SizedBox(height: 10),
+                                                Text(
+                                                  "${data.distance.toStringAsFixed(1)} KM Away",
+                                                  style: const TextStyle(
+                                                    fontFamily:
+                                                        fontFamilyMiriam,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: _fontSize,
+                                                    color: Color(0xFF626463),
                                                   ),
-                                                )),
-                                            const SizedBox(height: 10),
-                                            Text(
-                                              "${data.distance.toStringAsFixed(1)} KM Away",
-                                              style: const TextStyle(
-                                                fontFamily: 'MiriamLibre',
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
-                                                color: Color(0xFF626463),
+                                                ),
+                                              ],
+                                            ),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: <Widget>[
+                                                  Row(children: [
+                                                    Expanded(
+                                                      child: Directionality(
+                                                        textDirection:
+                                                            TextDirection.rtl,
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                      .only(
+                                                                  top: 4,
+                                                                  bottom: 3),
+                                                          child: Align(
+                                                            alignment: Alignment
+                                                                .centerRight,
+                                                            child: Text(
+                                                              data.lot_name,
+                                                              style: const TextStyle(
+                                                                  fontSize:
+                                                                      _fontSizeTitle),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    StreamBuilder(
+                                                        stream: FirebaseFirestore
+                                                            .instance
+                                                            .collection(
+                                                                "favorites")
+                                                            .where('uid',
+                                                                isEqualTo:
+                                                                    user.uid)
+                                                            .where('parkingLot',
+                                                                isEqualTo:
+                                                                    data.lot_id)
+                                                            .snapshots(),
+                                                        builder: (BuildContext
+                                                                context,
+                                                            AsyncSnapshot
+                                                                snapshot) {
+                                                          if (snapshot.data ==
+                                                              null) {
+                                                            return Text("");
+                                                          }
+                                                          return IconButton(
+                                                              icon: snapshot
+                                                                          .data
+                                                                          .docs
+                                                                          .length ==
+                                                                      0
+                                                                  ? const Icon(
+                                                                      Icons
+                                                                          .star_border_outlined,
+                                                                      color: Colors
+                                                                          .black,
+                                                                    )
+                                                                  : const Icon(
+                                                                      Icons
+                                                                          .star,
+                                                                      color: Colors
+                                                                          .yellow,
+                                                                    ),
+                                                              onPressed: () => snapshot
+                                                                          .data
+                                                                          .docs
+                                                                          .length ==
+                                                                      0
+                                                                  ? addToFavorites(
+                                                                      user.uid,
+                                                                      data
+                                                                          .lot_id)
+                                                                  : removeFromFavorites(
+                                                                      user.uid,
+                                                                      data.lot_id));
+                                                        }),
+                                                  ]),
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            right: 19),
+                                                    child: Text(
+                                                      data.address,
+                                                      style: const TextStyle(
+                                                          textBaseline:
+                                                              TextBaseline
+                                                                  .ideographic),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            right: 19),
+                                                    child: Text((() {
+                                                      if (data.hourly_fare ==
+                                                              true &&
+                                                          data.fixed_price !=
+                                                              null) {
+                                                        return fixedAnHourlyPrice;
+                                                      } else if (data
+                                                                  .hourly_fare ==
+                                                              true &&
+                                                          data.fixed_price ==
+                                                              null) {
+                                                        return hourlyPrice;
+                                                      } else if (data
+                                                                  .hourly_fare !=
+                                                              true &&
+                                                          data.fixed_price !=
+                                                              null) {
+                                                        return fixedPrice;
+                                                      }
+                                                      return unknownPaying;
+                                                    })()),
+                                                  ),
+                                                  Stack(
+                                                    children: [
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                    .only(
+                                                                right: 210,
+                                                                top: 10),
+                                                        child: data.availability !=
+                                                                null
+                                                            ? CircleAvatar(
+                                                                radius: 15,
+                                                                backgroundColor: data
+                                                                            .availability! ==
+                                                                        1
+                                                                    ? Colors
+                                                                        .deepOrange
+                                                                    : data.availability! ==
+                                                                            0.7
+                                                                        ? Colors
+                                                                            .orangeAccent
+                                                                        : Colors
+                                                                            .green,
+                                                                child: data.availability! <
+                                                                        1
+                                                                    ? const Icon(
+                                                                        Icons
+                                                                            .check,
+                                                                        color: Colors
+                                                                            .white)
+                                                                    : const Icon(
+                                                                        Icons
+                                                                            .close,
+                                                                        color: Colors
+                                                                            .white),
+                                                              )
+                                                            : const CircleAvatar(
+                                                                radius: 15,
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .white),
+                                                      ),
+                                                      data.availability != null
+                                                          ? Positioned(
+                                                              left: 37,
+                                                              top: 18,
+                                                              child: Text(
+                                                                data.availability! ==
+                                                                        1
+                                                                    ? fullStr
+                                                                    : data.availability! ==
+                                                                            0.7
+                                                                        ? almostFullStr
+                                                                        : availableStr,
+                                                                style:
+                                                                    const TextStyle(
+                                                                  fontFamily:
+                                                                      fontFamilyMiriam,
+                                                                  fontSize:
+                                                                      _fontSize,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Color(
+                                                                      0xFF626463),
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : const Center(),
+                                                      data.paying_method !=
+                                                              (unknownPayingMethod)
+                                                          ? Positioned(
+                                                              top: 9,
+                                                              left: 145,
+                                                              child: (data.paying_method ==
+                                                                      cashAndCreditH)
+                                                                  ? Image.asset(
+                                                                      'assets/images/cash_credit.png',
+                                                                      height:
+                                                                          34,
+                                                                      width: 34,
+                                                                      fit: BoxFit
+                                                                          .fitWidth,
+                                                                    )
+                                                                  : (data.paying_method ==
+                                                                          cash)
+                                                                      ? Image
+                                                                          .asset(
+                                                                          'assets/images/cash.png',
+                                                                          height:
+                                                                              32,
+                                                                          width:
+                                                                              32,
+                                                                          fit: BoxFit
+                                                                              .fitWidth,
+                                                                        )
+                                                                      : Image
+                                                                          .asset(
+                                                                          'assets/images/credit_only.png',
+                                                                          height:
+                                                                              39,
+                                                                          width:
+                                                                              39,
+                                                                          fit: BoxFit
+                                                                              .fitWidth,
+                                                                        ))
+                                                          : const Center(),
+                                                      Positioned(
+                                                          top: 11,
+                                                          left: 195,
+                                                          child: data.is_accessible ==
+                                                                  true
+                                                              ? Image.asset(
+                                                                  'assets/images/disability.png',
+                                                                  height: 29,
+                                                                  width: 29,
+                                                                  fit: BoxFit
+                                                                      .fitWidth,
+                                                                )
+                                                              : const Center()),
+                                                    ],
+                                                  )
+                                                ],
                                               ),
                                             ),
                                           ],
                                         ),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: <Widget>[
-                                              Row(children: [
-                                                Expanded(
-                                                  child: Directionality(
-                                          textDirection: TextDirection.rtl,
-                                            child:  Padding(
-                                              padding: const EdgeInsets.only(
-                                                  top: 4, bottom: 3),
-                                              child: Align(
-                                                    alignment:
-                                                        Alignment.centerRight,
-                                                    child: Text(
-                                                      data.lot_name,
-                                                      style: const TextStyle(
-                                                          fontSize: 20),
-                                                    ),
-                                                  ),),),
-                                                ),
-                                                StreamBuilder(
-                                                    stream: FirebaseFirestore
-                                                        .instance
-                                                        .collection("favorites")
-                                                        .where('uid',
-                                                            isEqualTo: user.uid)
-                                                        .where('parkingLot',
-                                                            isEqualTo:
-                                                                data.lot_id)
-                                                        .snapshots(),
-                                                    builder:
-                                                        (BuildContext context,
-                                                            AsyncSnapshot
-                                                                snapshot) {
-                                                      if (snapshot.data ==
-                                                          null) {
-                                                        return Text("");
-                                                      }
-                                                      return IconButton(
-                                                          icon: snapshot
-                                                                      .data
-                                                                      .docs
-                                                                      .length ==
-                                                                  0
-                                                              ? const Icon(
-                                                                  Icons
-                                                                      .star_border_outlined,
-                                                                  color: Colors
-                                                                      .black,
-                                                                )
-                                                              : const Icon(
-                                                                  Icons.star,
-                                                                  color: Colors
-                                                                      .yellow,
-                                                                ),
-                                                          onPressed: () => snapshot
-                                                                      .data
-                                                                      .docs
-                                                                      .length ==
-                                                                  0
-                                                              ? addToFavorites(
-                                                                  user.uid,
-                                                                  data.lot_id)
-                                                              : removeFromFavorites(
-                                                                  user.uid,
-                                                                  data.lot_id));
-                                                    }),
-                                              ]),
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    right: 19),
-                                                child: Text(
-                                                  data.address,
-                                                  style: const TextStyle(
-                                                      textBaseline: TextBaseline
-                                                          .ideographic),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 6),
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    right: 19),
-                                                child: Text((() {
-                                                  if (data.hourly_fare ==
-                                                          true &&
-                                                      data.fixed_price !=
-                                                          null) {
-                                                    return "תשלום שעתי וחד פעמי";
-                                                  } else if (data.hourly_fare ==
-                                                          true &&
-                                                      data.fixed_price ==
-                                                          null) {
-                                                    return "תשלום שעתי בלבד";
-                                                  } else if (data.hourly_fare !=
-                                                          true &&
-                                                      data.fixed_price !=
-                                                          null) {
-                                                    return "תשלום חד פעמי";
-                                                  }
-                                                  return "תשלום בהתאם לשילוט במקום";
-                                                })()),
-                                              ),
-                                              Stack(
-                                                children: [
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            right: 210,
-                                                            top: 10),
-                                                    child: data.availability !=
-                                                            null
-                                                        ? CircleAvatar(
-                                                            radius: 15,
-                                                            backgroundColor:
-                                                            data.availability! ==
-                                                                1 ? Colors
-                                                                .deepOrange : data.availability! == 0.7
-                                                                ? Colors
-                                                                .orangeAccent
-                                                                : Colors
-                                                                .green,
-                                                            child: data.availability! <
-                                                                    1
-                                                                ? const Icon(
-                                                                    Icons.check,
-                                                                    color: Colors
-                                                                        .white)
-                                                                : const Icon(
-                                                                    Icons.close,
-                                                                    color: Colors
-                                                                        .white),
-                                                          )
-                                                        : const CircleAvatar(
-                                                            radius: 15,
-                                                            backgroundColor:
-                                                                Colors.white),
-                                                  ),
-                                                  data.availability != null
-                                                      ? Positioned(
-                                                          left: 37,
-                                                          top: 18,
-                                                          child: Text(
-                                                            data.availability! ==
-                                                                    1 ? "Full" :  data.availability! == 0.7
-                                                                ? "Almost Full"
-                                                                : "Available!",
-                                                            style:
-                                                                const TextStyle(
-                                                              fontFamily:
-                                                                  'MiriamLibre',
-                                                              fontSize: 15,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              color: Color(
-                                                                  0xFF626463),
-                                                            ),
-                                                          ),
-                                                        )
-                                                      : const Center(),
-                                                  data.paying_method !=
-                                                          ("בהתאם לשילוט במקום")
-                                                      ? Positioned(
-                                                          top: 9,
-                                                          left: 145,
-                                                          child: (data
-                                                              .paying_method == "מזומן + אשראי (חניון ממוכן)")
-                                                              ? Image.asset(
-                                                                  'assets/images/cash_credit.png',
-                                                                  height: 34,
-                                                                  width: 34,
-                                                                  fit: BoxFit
-                                                                      .fitWidth,
-                                                                ) : (data
-                                                              .paying_method == "מזומן") ?
-                                                          Image.asset(
-                                                            'assets/images/cash.png',
-                                                            height: 32,
-                                                            width: 32,
-                                                            fit: BoxFit
-                                                                .fitWidth,
-                                                          ) : Image.asset(
-                                                                  'assets/images/credit_only.png',
-                                                                  height: 39,
-                                                                  width: 39,
-                                                                  fit: BoxFit
-                                                                      .fitWidth,
-                                                                ))
-                                                      : const Center(),
-                                                  Positioned(
-                                                      top: 11,
-                                                      left: 195,
-                                                      child: data.is_accessible == true
-                                                          ? Image.asset(
-                                                              'assets/images/disability.png',
-                                                              height: 29,
-                                                              width: 29,
-                                                              fit: BoxFit
-                                                                  .fitWidth,
-                                                            )
-                                                          : const Center()),
-                                                ],
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                                  );
+                                },
+                              ),
           ),
         ],
       ),
