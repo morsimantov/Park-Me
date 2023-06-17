@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../env.sample.dart';
 import 'lot_details_screen.dart';
+import '../config/strings.dart';
 
 class ParkingLotsNearbyScreen extends StatefulWidget {
   const ParkingLotsNearbyScreen({Key? key}) : super(key: key);
@@ -20,69 +21,84 @@ class ParkingLotsNearbyScreen extends StatefulWidget {
 }
 
 class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
+  static const String _appBarTitle = "All Parking Lots Near you";
+  static const double _fontSize = 17;
+  static const double _fontSizeTitle = 19;
+
+  int _selectedIndex = 1;
   Position? _currentUserPosition;
-  double? distanceImMeter = 0.0;
-  late List<ParkingLot> parkingLots;
-  late List<ParkingLot> parkingLotsOrigin = [];
-  double? distanceInMeter = 0.0;
+  late List<ParkingLot> _parkingLots;
+  late List<ParkingLot> _parkingLotsOrigin = [];
+  late double _wantedLocationLat;
+  late double _wantedLocationLong;
+
   final parkinglotListKey = GlobalKey<_ParkingLotsNearbyScreenState>();
-  late double wantedLocationLat;
-  late double wantedLocationLong;
 
   @override
   void initState() {
     super.initState();
-    parkingLots = [];
+    _parkingLots = [];
+    // Get parking lots list
     getParkingLotList();
   }
 
   Future<void> getParkingLotList() async {
+    // Send a GET request to retrieve the parking lot list from the specified URL
     final response = await http.get(Uri.parse(Env.URL_PREFIX));
-    print("response");
-    print(response.body);
     final decodedResponse = utf8.decode(response.bodyBytes);
+    // Decode the response and cast it to a list of Map<String, dynamic>
     final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
+    // Map the JSON response to a list of ParkingLot objects
     List<ParkingLot> parkingLotsTemp = items.map<ParkingLot>((json) {
       return ParkingLot.fromJson(json);
     }).toList();
     setState(() {
-      parkingLotsOrigin.addAll(parkingLotsTemp);
+      // Add the parking lots to the _parkingLotsOrigin list
+      _parkingLotsOrigin.addAll(parkingLotsTemp);
     });
-    await _getTheDistance();
-    parkingLotsOrigin.sort((a, b) => a.distance.compareTo(b.distance));
-    parkingLotsOrigin = parkingLotsOrigin.take(8).toList();
-    parkingLots = parkingLotsOrigin;
+    // Retrieve the distances for the parking lots
+    await getLotDistances();
+    // Sort the parking lots based on distance
+    _parkingLotsOrigin.sort((a, b) => a.distance.compareTo(b.distance));
+    // Take the first 8 closest parking lots from the sorted list
+    _parkingLotsOrigin = _parkingLotsOrigin.take(8).toList();
+    // Update the parkingLots list with the selected parking lots
+    _parkingLots = _parkingLotsOrigin;
   }
 
-  Future _getTheDistance() async {
+
+  Future getLotDistances() async {
     LocationPermission permission;
+    double? distanceInMeter = 0.0;
+    // Request location permission
     permission = await Geolocator.requestPermission();
+    // Get the current user's position
     _currentUserPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
-    print(_currentUserPosition);
-    wantedLocationLat = _currentUserPosition!.latitude;
-    wantedLocationLong = _currentUserPosition!.longitude;
-    for (var parkingLotItem in parkingLotsOrigin) {
+    _wantedLocationLat = _currentUserPosition!.latitude;
+    _wantedLocationLong = _currentUserPosition!.longitude;
+    for (var parkingLotItem in _parkingLots) {
       final address = parkingLotItem.address;
+      // Get the location coordinates for the parking lot address
       List<Location> locations = await locationFromAddress(address);
       Location lotLocation = locations.first;
       double parkingLotLat = lotLocation.latitude;
       double parkingLotLng = lotLocation.longitude;
+      // Calculate the distance between user's location and the parking lot
       distanceInMeter = await Geolocator.distanceBetween(
-        wantedLocationLat,
-        wantedLocationLong,
+        _wantedLocationLat,
+        _wantedLocationLong,
         parkingLotLat,
         parkingLotLng,
       );
       var distance = distanceInMeter?.round().toInt();
+      // Update the distance of each parking lot
       parkingLotItem.distance = (distance! / 1000);
       setState(() {});
     }
   }
 
-  int _selectedIndex = 1;
-
-  void _onItemTapped(int index) {
+  void onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
       if (index == 0) {
@@ -100,9 +116,7 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const HomeScreen(
-                title: '',
-              ),
+              builder: (_) => const HomeScreen(),
             ));
       } else if (index == 2) {
         Navigator.push(
@@ -122,7 +136,7 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
       appBar: AppBar(
         // centerTitle: true,
         backgroundColor: const Color(0xFF03A295),
-        title: const Text("All Parking Lots Near you"),
+        title: const Text(_appBarTitle),
       ),
       backgroundColor: const Color(0xfff6f7f9),
       bottomNavigationBar: BottomNavigationBar(
@@ -130,28 +144,28 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: 'Search',
+            label: searchLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: homeLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star),
-            label: 'Favorites',
+            label: favoritesLabel,
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: const Color(0xff67686b),
-        onTap: _onItemTapped,
+        onTap: onItemTapped,
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
         child: Center(
-          child: (parkingLots.isEmpty)
+          child: (_parkingLots.isEmpty)
               ? const CircularProgressIndicator()
               : GridView.builder(
-                  itemCount: parkingLots.length,
+                  itemCount: _parkingLots.length,
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 200,
                     childAspectRatio: 3 / 3,
@@ -165,8 +179,8 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => LotDetailsScreen(
-                                lotId: parkingLots[index].lot_id,
-                                distance: parkingLots[index].distance,
+                                lotId: _parkingLots[index].lot_id,
+                                distance: _parkingLots[index].distance,
                               ),
                             ),
                           );
@@ -208,7 +222,7 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
                                     topStart: Radius.circular(8.0),
                                   ),
                                   child: Image.network(
-                                    parkingLots[index].image,
+                                    _parkingLots[index].image,
                                     fit: BoxFit.fill,
                                   ),
                                 ),
@@ -216,28 +230,35 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
                               const SizedBox(
                                 height: 10,
                               ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                parkingLots[index].lot_name,
-                                style: const TextStyle(
-                                  fontSize: 19,
-                                  color: Color(0xFF626463),
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _parkingLots[index].lot_name,
+                                    style: const TextStyle(
+                                      fontSize: _fontSizeTitle,
+                                      color: Color(0xFF626463),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 5,
+                                  ),
+                                  (_parkingLots[index].availability != null)
+                                      ? CircleAvatar(
+                                          radius: 5,
+                                          backgroundColor: _parkingLots[index]
+                                                      .availability ==
+                                                  0
+                                              ? Colors.green
+                                              : _parkingLots[index]
+                                                          .availability ==
+                                                      0.7
+                                                  ? Colors.orangeAccent
+                                                  : Colors.deepOrange,
+                                        )
+                                      : const Center(),
+                                ],
                               ),
-                              const SizedBox(
-                                width: 5,
-                              ),
-                              (parkingLots[index].availability != null) ? CircleAvatar(
-                                radius: 5,
-                                backgroundColor: parkingLots[index].availability == 0
-                                    ? Colors.green
-                                    : parkingLots[index].availability == 0.7
-                                        ? Colors.orangeAccent
-                                        : Colors.deepOrange,
-                              ) : Center(),
-                              ],),
                               const SizedBox(
                                 height: 5,
                               ),
@@ -247,10 +268,10 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
                                   const Icon(Icons.location_on,
                                       color: Colors.teal),
                                   Text(
-                                    "${parkingLots[index].distance.toStringAsFixed(1)} KM Away",
+                                    "${_parkingLots[index].distance.toStringAsFixed(1)} KM Away",
                                     style: const TextStyle(
-                                      fontFamily: 'MiriamLibre',
-                                      fontSize: 17,
+                                      fontFamily: fontFamilyMiriam,
+                                      fontSize: _fontSize,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF626463),
                                     ),

@@ -1,18 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:park_me/screens/parking_lots_results_screen.dart';
 import '../model/filter_parameters.dart';
+import '../config/strings.dart';
+import '../config/colors.dart';
 
 class FilterScreen extends StatefulWidget {
   final FilterParameters filterStatus;
   final String wantedLocationAddress;
-  const FilterScreen({super.key, required this.wantedLocationAddress, required this.filterStatus});
+
+  const FilterScreen(
+      {super.key,
+      required this.wantedLocationAddress,
+      required this.filterStatus});
 
   @override
   State<FilterScreen> createState() => _FilterScreenState();
 }
 
-
 class _FilterScreenState extends State<FilterScreen> {
+  static const String _appBarTitle = "Find a Parking spot";
+  static const String _orderByTitle = "Order by:";
+  static const String _applyButton = "Apply";
+  static const String _filterByTitle = "Filter by:";
+  static const String _walkingDistanceText = "Maximum walking distance:";
+  static const String _priceText = "Maximum price per hour:";
+  static const String _payingMethodText = "Method of payment:";
+  static const String _cashText = "Cash";
+  static const String _creditText = "Credit Card";
+  static const String _pangoText = "Pango";
+  static const double _fontSize = 16;
+  static const double _fontSizeTitle = 18;
+  double _walkingDisSlider = 25;
+  double _priceSlider = 20;
+
   late FilterParameters filterStatus = widget.filterStatus;
   late Color _availabilityButtonColor;
   late Color _availabilityTextColor;
@@ -26,31 +46,49 @@ class _FilterScreenState extends State<FilterScreen> {
   late Color _distanceTextColor;
   late Color _priceButtonColor;
   late Color _priceTextColor;
-  late bool isCashChecked;
-  late bool isCreditChecked;
-  late bool isPangoChecked = false;
-  double _walkingDisSlider = 25;
-  double _priceSlider = 20;
-  bool isHover=false;
+  late bool _isCashChecked;
+  late bool _isCreditChecked;
+  late bool _isPangoChecked = false;
 
   @override
   void initState() {
     super.initState();
-    _availabilityButtonColor = filterStatus.availability ? const Color(0xFF55C0B3) : const Color(0xFFD6E7E2);
-    _availabilityTextColor = filterStatus.availability ? Colors.white : const Color(0xFF868D8C);
-    _accessibleButtonColor = filterStatus.accessibility ? const Color(0xFF55C0B3) : const Color(0xFFD6E7E2);
-    _accessibleTextColor = filterStatus.accessibility ? Colors.white : const Color(0xFF868D8C);
-    _undergroundButtonColor = filterStatus.isUnderground ?  const Color(0xFF55C0B3): const Color(0xFFD6E7E2);
-    _undergroundTextColor = filterStatus.isUnderground ? Colors.white : const Color(0xFF868D8C);
-    _discountButtonColor = filterStatus.discount ?  const Color(0xFF55C0B3): const Color(0xFFD6E7E2);
-    _discountTextColor = filterStatus.discount ? Colors.white : const Color(0xFF868D8C);
-    _distanceButtonColor = filterStatus.distance ?  const Color(0xFF55C0B3): const Color(0xFFD6E7E2);
-    _distanceTextColor = filterStatus.distance ? Colors.white : const Color(0xFF868D8C);
-    _priceButtonColor = filterStatus.fixedPrice ?  const Color(0xFF55C0B3) : const Color(0xFFD6E7E2);
-    _priceTextColor = filterStatus.fixedPrice ? Colors.white : const Color(0xFF868D8C);
-    isCashChecked = filterStatus.cash ? true : false;
-    isCreditChecked = filterStatus.credit ? true : false;
-    isPangoChecked = filterStatus.pango ? true : false;
+    // Set initial button colors according to the filter status
+    _availabilityButtonColor = filterStatus.availability
+        ? pressedButtonColor
+        : unpressedButtonColor;
+    _availabilityTextColor =
+        filterStatus.availability ? Colors.white : unpressedTextColor;
+    _accessibleButtonColor = filterStatus.accessibility
+        ? pressedButtonColor
+        : unpressedButtonColor;
+    _accessibleTextColor =
+        filterStatus.accessibility ? Colors.white : unpressedTextColor;
+    _undergroundButtonColor = filterStatus.isUnderground
+        ? pressedButtonColor
+        : unpressedButtonColor;
+    _undergroundTextColor =
+        filterStatus.isUnderground ? Colors.white : unpressedTextColor;
+    _discountButtonColor = filterStatus.discount
+        ? pressedButtonColor
+        : unpressedButtonColor;
+    _discountTextColor =
+        filterStatus.discount ? Colors.white : unpressedTextColor;
+    _distanceButtonColor = filterStatus.distance
+        ? pressedButtonColor
+        : unpressedButtonColor;
+    _distanceTextColor =
+        filterStatus.distance ? Colors.white : unpressedTextColor;
+    _priceButtonColor = filterStatus.fixedPrice
+        ? pressedButtonColor
+        : unpressedButtonColor;
+    _priceTextColor =
+        filterStatus.fixedPrice ? Colors.white : unpressedTextColor;
+    // Set initial checkboxes according to the filter status
+    _isCashChecked = filterStatus.cash ? true : false;
+    _isCreditChecked = filterStatus.credit ? true : false;
+    _isPangoChecked = filterStatus.pango ? true : false;
+    // Set initial sliders according to the filter status values
     if (filterStatus.walkingDistance != null) {
       _walkingDisSlider = filterStatus.walkingDistance!;
     }
@@ -60,23 +98,14 @@ class _FilterScreenState extends State<FilterScreen> {
   }
 
   Color getColor(Set<MaterialState> states) {
-    const Set<MaterialState> interactiveStates = <MaterialState>{
-      MaterialState.pressed,
-      MaterialState.hovered,
-      MaterialState.focused,
-    };
-    if (states.any(interactiveStates.contains)) {
-      return const Color(0xFF55C0B3);
-    } else {
-      return const Color(0xFF55C0B3);
-    }
+      return pressedButtonColor;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Find a Parking spot"),
+        title: const Text(_appBarTitle),
         backgroundColor: const Color(0xFF03A295),
       ),
       backgroundColor: const Color(0xfff5f6fa),
@@ -94,11 +123,11 @@ class _FilterScreenState extends State<FilterScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Order by:',
+                          _orderByTitle,
                           style: TextStyle(
-                            fontFamily: 'MiriamLibre',
-                            color: Color(0xFF474948),
-                            fontSize: 18,
+                            fontFamily: fontFamilyMiriam,
+                            color: greyTextColor,
+                            fontSize: _fontSizeTitle,
                             // fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -118,24 +147,24 @@ class _FilterScreenState extends State<FilterScreen> {
                         ),
                         onPressed: () {
                           if (_availabilityButtonColor ==
-                              const Color(0xFFD6E7E2)) {
+                              unpressedButtonColor) {
                             setState(() {
                               _availabilityButtonColor =
-                              const Color(0xFF55C0B3);
+                                  pressedButtonColor;
                               _availabilityTextColor = Colors.white;
                               filterStatus.availability = true;
                             });
                           } else {
                             setState(() {
                               _availabilityButtonColor =
-                                  const Color(0xFFD6E7E2);
-                              _availabilityTextColor = const Color(0xFF868D8C);
+                                  unpressedButtonColor;
+                              _availabilityTextColor = unpressedTextColor;
                               filterStatus.availability = false;
                             });
                           }
                         },
                         child: Text(
-                          'Availability',
+                          availabilityButton,
                           style: TextStyle(
                             color: _availabilityTextColor,
                           ),
@@ -148,25 +177,22 @@ class _FilterScreenState extends State<FilterScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 23),
                         ),
                         onPressed: () {
-                          if (_distanceButtonColor ==
-                              const Color(0xFFD6E7E2)) {
+                          if (_distanceButtonColor == unpressedButtonColor) {
                             setState(() {
-                              _distanceButtonColor =
-                              const Color(0xFF55C0B3);
+                              _distanceButtonColor = pressedButtonColor;
                               _distanceTextColor = Colors.white;
                               filterStatus.distance = true;
                             });
                           } else {
                             setState(() {
-                              _distanceButtonColor =
-                              const Color(0xFFD6E7E2);
-                              _distanceTextColor = const Color(0xFF868D8C);
+                              _distanceButtonColor = unpressedButtonColor;
+                              _distanceTextColor = unpressedTextColor;
                               filterStatus.distance = false;
                             });
                           }
                         },
                         child: Text(
-                          'Distance',
+                          distanceButton,
                           style: TextStyle(
                             color: _distanceTextColor,
                           ),
@@ -180,22 +206,22 @@ class _FilterScreenState extends State<FilterScreen> {
                         ),
                         onPressed: () {
                           if (_accessibleButtonColor ==
-                              const Color(0xFFD6E7E2)) {
+                              unpressedButtonColor) {
                             setState(() {
-                              _accessibleButtonColor = const Color(0xFF55C0B3);
+                              _accessibleButtonColor = pressedButtonColor;
                               _accessibleTextColor = Colors.white;
                               filterStatus.accessibility = true;
                             });
                           } else {
                             setState(() {
-                              _accessibleButtonColor = const Color(0xFFD6E7E2);
-                              _accessibleTextColor = const Color(0xFF868D8C);
+                              _accessibleButtonColor = unpressedButtonColor;
+                              _accessibleTextColor = unpressedTextColor;
                               filterStatus.accessibility = false;
                             });
                           }
                         },
                         child: Text(
-                          'Accessibility',
+                          accessibilityButton,
                           style: TextStyle(
                             color: _accessibleTextColor,
                           ),
@@ -206,7 +232,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 30, vertical: 102),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 102),
                   child: Row(
                     children: [
                       ElevatedButton(
@@ -216,22 +242,22 @@ class _FilterScreenState extends State<FilterScreen> {
                         ),
                         onPressed: () {
                           if (_undergroundButtonColor ==
-                              const Color(0xFFD6E7E2)) {
+                              unpressedButtonColor) {
                             setState(() {
-                              _undergroundButtonColor = const Color(0xFF55C0B3);
+                              _undergroundButtonColor = pressedButtonColor;
                               _undergroundTextColor = Colors.white;
                               filterStatus.isUnderground = true;
                             });
                           } else {
                             setState(() {
-                              _undergroundButtonColor = const Color(0xFFD6E7E2);
-                              _undergroundTextColor = const Color(0xFF868D8C);
+                              _undergroundButtonColor = unpressedButtonColor;
+                              _undergroundTextColor = unpressedTextColor;
                               filterStatus.isUnderground = false;
                             });
                           }
                         },
                         child: Text(
-                          'Underground',
+                          undergroundButton,
                           style: TextStyle(
                             color: _undergroundTextColor,
                           ),
@@ -244,23 +270,22 @@ class _FilterScreenState extends State<FilterScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                         ),
                         onPressed: () {
-                          if (_discountButtonColor ==
-                              const Color(0xFFD6E7E2)) {
+                          if (_discountButtonColor == unpressedButtonColor) {
                             setState(() {
-                              _discountButtonColor = const Color(0xFF55C0B3);
+                              _discountButtonColor = pressedButtonColor;
                               _discountTextColor = Colors.white;
                               filterStatus.discount = true;
                             });
                           } else {
                             setState(() {
-                              _discountButtonColor = const Color(0xFFD6E7E2);
-                              _discountTextColor = const Color(0xFF868D8C);
+                              _discountButtonColor = unpressedButtonColor;
+                              _discountTextColor = unpressedTextColor;
                               filterStatus.discount = false;
                             });
                           }
                         },
                         child: Text(
-                          'Resident Discount',
+                          discountButton,
                           style: TextStyle(
                             color: _discountTextColor,
                           ),
@@ -272,18 +297,18 @@ class _FilterScreenState extends State<FilterScreen> {
                 ),
                 Padding(
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 30, vertical: 168),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 168),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Filter by:',
+                          _filterByTitle,
                           style: TextStyle(
-                            fontFamily: 'MiriamLibre',
-                            color: Color(0xFF474948),
-                            fontSize: 18,
+                            fontFamily: fontFamilyMiriam,
+                            color: greyTextColor,
+                            fontSize: _fontSizeTitle,
                             // fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -300,11 +325,11 @@ class _FilterScreenState extends State<FilterScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Maximum walking distance:',
+                          _walkingDistanceText,
                           style: TextStyle(
-                            fontFamily: 'MiriamLibre',
-                            color: Color(0xFF474948),
-                            fontSize: 16,
+                            fontFamily: fontFamilyMiriam,
+                            color: greyTextColor,
+                            fontSize: _fontSize,
                           ),
                         ),
                       ),
@@ -336,11 +361,11 @@ class _FilterScreenState extends State<FilterScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Maximum price per hour:',
+                          _priceText,
                           style: TextStyle(
-                            fontFamily: 'MiriamLibre',
-                            color: Color(0xFF474948),
-                            fontSize: 16,
+                            fontFamily: fontFamilyMiriam,
+                            color: greyTextColor,
+                            fontSize: _fontSize,
                           ),
                         ),
                       ),
@@ -352,8 +377,9 @@ class _FilterScreenState extends State<FilterScreen> {
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 275),
                   child: Slider(
                     value: _priceSlider,
-                    max: 50,
-                    divisions: 5,
+                    max: 45,
+                    min: 10,
+                    divisions: 7,
                     label: _priceSlider.round().toString(),
                     onChanged: (double value) {
                       setState(() {
@@ -372,22 +398,22 @@ class _FilterScreenState extends State<FilterScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                     onPressed: () {
-                      if (_priceButtonColor == const Color(0xFFD6E7E2)) {
+                      if (_priceButtonColor == unpressedButtonColor) {
                         setState(() {
-                          _priceButtonColor = const Color(0xFF55C0B3);
+                          _priceButtonColor = pressedButtonColor;
                           _priceTextColor = Colors.white;
                           filterStatus.fixedPrice = true;
                         });
                       } else {
                         setState(() {
-                          _priceButtonColor = const Color(0xFFD6E7E2);
-                          _priceTextColor = const Color(0xFF868D8C);
+                          _priceButtonColor = unpressedButtonColor;
+                          _priceTextColor = unpressedTextColor;
                           filterStatus.fixedPrice = false;
                         });
                       }
                     },
                     child: Text(
-                      'Fixed price',
+                      fixedPriceButton,
                       style: TextStyle(
                         color: _priceTextColor,
                       ),
@@ -403,11 +429,11 @@ class _FilterScreenState extends State<FilterScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Method of payment:',
+                          _payingMethodText,
                           style: TextStyle(
-                            fontFamily: 'MiriamLibre',
-                            color: Color(0xFF474948),
-                            fontSize: 16,
+                            fontFamily: fontFamilyMiriam,
+                            color: greyTextColor,
+                            fontSize: _fontSize,
                           ),
                         ),
                       ),
@@ -420,10 +446,10 @@ class _FilterScreenState extends State<FilterScreen> {
                   child: Checkbox(
                     checkColor: Colors.white,
                     fillColor: MaterialStateProperty.resolveWith(getColor),
-                    value: isCashChecked,
+                    value: _isCashChecked,
                     onChanged: (bool? value) {
                       setState(() {
-                        isCashChecked = value!;
+                        _isCashChecked = value!;
                         filterStatus.cash = value!;
                       });
                     },
@@ -432,11 +458,11 @@ class _FilterScreenState extends State<FilterScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 62, vertical: 417),
                   child: Text(
-                    'Cash',
+                    _cashText,
                     style: TextStyle(
-                      fontFamily: 'MiriamLibre',
-                      color: Color(0xFF474948),
-                      fontSize: 16,
+                      fontFamily: fontFamilyMiriam,
+                      color: greyTextColor,
+                      fontSize: _fontSize,
                     ),
                   ),
                 ),
@@ -446,10 +472,10 @@ class _FilterScreenState extends State<FilterScreen> {
                   child: Checkbox(
                     checkColor: Colors.white,
                     fillColor: MaterialStateProperty.resolveWith(getColor),
-                    value: isCreditChecked,
+                    value: _isCreditChecked,
                     onChanged: (bool? value) {
                       setState(() {
-                        isCreditChecked = value!;
+                        _isCreditChecked = value!;
                         filterStatus.credit = value!;
                       });
                     },
@@ -458,11 +484,11 @@ class _FilterScreenState extends State<FilterScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 62, vertical: 447),
                   child: Text(
-                    'Credit card',
+                    _creditText,
                     style: TextStyle(
-                      fontFamily: 'MiriamLibre',
-                      color: Color(0xFF474948),
-                      fontSize: 16,
+                      fontFamily: fontFamilyMiriam,
+                      color: greyTextColor,
+                      fontSize: _fontSize,
                     ),
                   ),
                 ),
@@ -472,10 +498,10 @@ class _FilterScreenState extends State<FilterScreen> {
                   child: Checkbox(
                     checkColor: Colors.white,
                     fillColor: MaterialStateProperty.resolveWith(getColor),
-                    value: isPangoChecked,
+                    value: _isPangoChecked,
                     onChanged: (bool? value) {
                       setState(() {
-                        isPangoChecked = value!;
+                        _isPangoChecked = value!;
                         filterStatus.pango = value!;
                       });
                     },
@@ -484,11 +510,11 @@ class _FilterScreenState extends State<FilterScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 62, vertical: 477),
                   child: Text(
-                    'Pango',
+                    _pangoText,
                     style: TextStyle(
-                      fontFamily: 'MiriamLibre',
-                      color: Color(0xFF474948),
-                      fontSize: 16,
+                      fontFamily: fontFamilyMiriam,
+                      color: greyTextColor,
+                      fontSize: _fontSize,
                     ),
                   ),
                 ),
@@ -506,13 +532,14 @@ class _FilterScreenState extends State<FilterScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => ParkingLotsResultsScreen(
-                                wantedLocationAddress: widget.wantedLocationAddress,
+                                wantedLocationAddress:
+                                    widget.wantedLocationAddress,
                                 filterStatus: filterStatus,
                               ),
                             ));
                       },
                       child: const Text(
-                        'Apply',
+                        _applyButton,
                         style: TextStyle(
                           color: Colors.white,
                         ),

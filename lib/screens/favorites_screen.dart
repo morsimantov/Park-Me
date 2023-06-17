@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:park_me/config/strings.dart';
 import 'package:park_me/model/filter_parameters.dart';
 import 'package:park_me/model/parking_lot.dart';
 import 'package:park_me/screens/search_screen.dart';
@@ -25,74 +25,86 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class FavoritesScreenState extends State<FavoritesScreen> {
-  late List<ParkingLot> parkingLots;
+  static const String _appBarTitle = "Your Favorites";
+  static const double _fontSize = 15;
+  static const double _fontSizeTitle = 20;
+
+  late List<ParkingLot> _parkingLots;
   Position? _currentUserPosition;
-  late double wantedLocationLat;
-  late double wantedLocationLong;
-  final user = FirebaseAuth.instance.currentUser!;
+  late double _wantedLocationLat;
+  late double _wantedLocationLong;
   late bool _isFavoritesEmpty = false;
-
-  double? distanceInMeter = 0.0;
-
-  final parkinglotListKey = GlobalKey<FavoritesScreenState>();
   int _selectedIndex = 2;
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      if (index == 1) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const HomeScreen(
-                title: '',
-              ),
-            ));
-      }
-      if (index == 0) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SearchScreen(
-                title: '',
-                filterStatus:
-                    FilterParameters(false, false, false, false, false, false, false),
-              ),
-            ));
-      }
-    });
-  }
+  final user = FirebaseAuth.instance.currentUser!;
+  final parkinglotListKey = GlobalKey<FavoritesScreenState>();
 
   @override
   void initState() {
     super.initState();
-    parkingLots = [];
+    _parkingLots = [];
+    // Initialize parking lots list
     getParkingLotList();
   }
 
   Future<void> getParkingLotList() async {
     final id = user.uid;
-    print(id);
-    final response =
-        await http.get(Uri.parse("${Env.URL_PREFIX}/favorites/$id"));
-    print("response");
+    // Retrieve favorites lots from the server
+    final response = await http.get(Uri.parse("${Env.URL_PREFIX}/favorites/$id"));
     final decodedResponse = utf8.decode(response.bodyBytes);
     final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
+    // Convert JSON data to ParkingLot objects
     List<ParkingLot> parkingLotsTemp = items.map<ParkingLot>((json) {
       return ParkingLot.fromJson(json);
     }).toList();
     setState(() {
-      parkingLots.addAll(parkingLotsTemp);
-      if (parkingLots.isEmpty) {
+      // Add fetched parking lots to the existing list
+      _parkingLots.addAll(parkingLotsTemp);
+      if (_parkingLots.isEmpty) {
         _isFavoritesEmpty = true;
       }
     });
-    _getTheDistance();
+    // Calculate distances to the parking lots
+    getLotDistances();
+  }
+
+  Future getLotDistances() async {
+    LocationPermission permission;
+    double? distanceInMeter = 0.0;
+    // Request location permission
+    permission = await Geolocator.requestPermission();
+    // Get the current user's position
+    _currentUserPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _wantedLocationLat = _currentUserPosition!.latitude;
+    _wantedLocationLong = _currentUserPosition!.longitude;
+    for (var parkingLotItem in _parkingLots) {
+      final address = parkingLotItem.address;
+      // Get the location coordinates for the parking lot address
+      List<Location> locations = await locationFromAddress(address);
+      Location lotLocation = locations.first;
+      double parkingLotLat = lotLocation.latitude;
+      double parkingLotLng = lotLocation.longitude;
+      // Calculate the distance between user's location and the parking lot
+      distanceInMeter = await Geolocator.distanceBetween(
+        _wantedLocationLat,
+        _wantedLocationLong,
+        parkingLotLat,
+        parkingLotLng,
+      );
+      // Convert the distance from meters to kilometers
+      var distance = distanceInMeter?.round().toInt();
+      // Update the distance of each parking lot
+      parkingLotItem.distance = (distance! / 1000);
+      setState(() {});
+    }
   }
 
   Future<void> addToFavorites(String uid, int lot_id) async {
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    // Generate a unique ID for the favorite lot entry
     String fid = const Uuid().v4();
+    // Add the favorite lot entry to Firestore
     await _firestore.collection('favorites').doc(fid).set({
       'fid': fid,
       'uid': uid,
@@ -102,46 +114,47 @@ class FavoritesScreenState extends State<FavoritesScreen> {
 
   Future<void> removeFromFavorites(String uid, int lot_id) async {
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    parkingLots.removeWhere((item) => item.lot_id == lot_id);
+    // Remove the parking lot from the favorites list
+    _parkingLots.removeWhere((item) => item.lot_id == lot_id);
+    // Query Firestore to find the matching favorite lot entry
     var snapshot = await _firestore
         .collection("favorites")
         .where('uid', isEqualTo: uid)
         .where('parkingLot', isEqualTo: lot_id)
         .get();
+    // Delete the matching favorite lot entry
     for (var doc in snapshot.docs) {
       await doc.reference.delete();
     }
-    if (parkingLots.isEmpty) {
+    // If the list is empty now
+    if (_parkingLots.isEmpty) {
       _isFavoritesEmpty = true;
     }
     setState(() {});
   }
 
-  Future _getTheDistance() async {
-    LocationPermission permission;
-    permission = await Geolocator.requestPermission();
-    _currentUserPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    print('current User Position: ');
-    print(_currentUserPosition);
-    wantedLocationLat = _currentUserPosition!.latitude;
-    wantedLocationLong = _currentUserPosition!.longitude;
-    for (var parkingLotItem in parkingLots) {
-      final address = parkingLotItem.address;
-      List<Location> locations = await locationFromAddress(address);
-      Location lotLocation = locations.first;
-      double parkingLotLat = lotLocation.latitude;
-      double parkingLotLng = lotLocation.longitude;
-      distanceInMeter = await Geolocator.distanceBetween(
-        wantedLocationLat,
-        wantedLocationLong,
-        parkingLotLat,
-        parkingLotLng,
-      );
-      var distance = distanceInMeter?.round().toInt();
-      parkingLotItem.distance = (distance! / 1000);
-      setState(() {});
-    }
+  void onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+      if (index == 1) {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const HomeScreen(),
+            ));
+      }
+      if (index == 0) {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SearchScreen(
+                title: '',
+                filterStatus: FilterParameters(
+                    false, false, false, false, false, false, false),
+              ),
+            ));
+      }
+    });
   }
 
   @override
@@ -149,7 +162,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xfff6f7f9),
       appBar: AppBar(
-        title: const Text("Your Favorites"),
+        title: const Text(_appBarTitle),
         backgroundColor: const Color(0xFF03A295),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -157,41 +170,41 @@ class FavoritesScreenState extends State<FavoritesScreen> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: 'Search',
+            label: searchLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: homeLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star),
-            label: 'Favorites',
+            label: favoritesLabel,
           ),
         ],
         currentIndex: _selectedIndex,
         // selectedItemColor: const Color(0xFF03A295),
         selectedItemColor: const Color(0xff67686b),
-        onTap: _onItemTapped,
+        onTap: onItemTapped,
       ),
-      body:
-      (_isFavoritesEmpty) ?
+      body: (_isFavoritesEmpty)
+          ? const Padding(
+              padding: EdgeInsets.only(top: 25),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Text(
+                  noLotsAvailable,
+                  style: TextStyle(
+                    fontFamily: fontFamilyMiriam,
+                    fontSize: 17,
+                    color: Color(0xFF626463),
+                  ),
+                ),
+              ),
+            )
+          :
 
-        const Padding(
-          padding: EdgeInsets.only(
-              top: 25), child: Align(
-          alignment: Alignment.topCenter,
-          child: Text(
-            "No parking lots available",
-            style: TextStyle(
-              fontFamily: 'MiriamLibre',
-              fontSize: 17,
-              color: Color(0xFF626463),
-            ),
-          ),
-        ),) :
-
-      // By default, show a loading spinner.
-          (parkingLots.isEmpty)
+          // By default, show a loading spinner.
+          (_parkingLots.isEmpty)
               ? const Center(
                   child: CircularProgressIndicator(),
                 )
@@ -200,9 +213,9 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                   padding: const EdgeInsets.only(top: 9),
                   child: ListView.builder(
                     shrinkWrap: true,
-                    itemCount: parkingLots.length,
+                    itemCount: _parkingLots.length,
                     itemBuilder: (BuildContext context, int index) {
-                      var data = parkingLots[index];
+                      var data = _parkingLots[index];
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -254,9 +267,9 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                                     Text(
                                       "${data.distance.round()} KM Away",
                                       style: const TextStyle(
-                                        fontFamily: 'MiriamLibre',
+                                        fontFamily: fontFamilyMiriam,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                                        fontSize: _fontSize,
                                         color: Color(0xFF626463),
                                       ),
                                     ),
@@ -270,18 +283,20 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                                         Expanded(
                                           child: Directionality(
                                             textDirection: TextDirection.rtl,
-                                            child:  Padding(
+                                            child: Padding(
                                               padding: const EdgeInsets.only(
                                                   top: 4, bottom: 3),
                                               child: Align(
                                                 alignment:
-                                                Alignment.centerRight,
+                                                    Alignment.centerRight,
                                                 child: Text(
                                                   data.lot_name,
                                                   style: const TextStyle(
-                                                      fontSize: 20),
+                                                      fontSize: _fontSizeTitle),
                                                 ),
-                                              ),),),
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                         StreamBuilder(
                                             stream: FirebaseFirestore.instance
@@ -294,7 +309,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                                             builder: (BuildContext context,
                                                 AsyncSnapshot snapshot) {
                                               if (snapshot.data == null) {
-                                                return Text("");
+                                                return const Text("");
                                               }
                                               return IconButton(
                                                   icon: snapshot.data.docs
@@ -336,82 +351,78 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                                         child: Text((() {
                                           if (data.hourly_fare == true &&
                                               data.fixed_price != null) {
-                                            return "תשלום שעתי וחד פעמי";
+                                            return fixedAnHourlyPrice;
                                           } else if (data.hourly_fare == true &&
                                               data.fixed_price == null) {
-                                            return "תשלום שעתי בלבד";
+                                            return hourlyPrice;
                                           } else if (data.hourly_fare != true &&
                                               data.fixed_price != null) {
-                                            return "תשלום חד פעמי";
+                                            return fixedPrice;
                                           }
-                                          return "תשלום בהתאם לשילוט במקום";
+                                          return unknownPaying;
                                         })()),
                                       ),
                                       Stack(
                                         children: [
                                           Padding(
-                                            padding:
-                                            const EdgeInsets.only(
-                                                right: 210,
-                                                top: 10),
-                                            child: data.availability !=
-                                                null
+                                            padding: const EdgeInsets.only(
+                                                right: 210, top: 10),
+                                            child: data.availability != null
                                                 ? CircleAvatar(
-                                              radius: 15,
-                                              backgroundColor:
-                                              data.availability! ==
-                                                  1 ? Colors
-                                                  .deepOrange : data.availability! == 0.7
-                                                  ? Colors
-                                                  .orangeAccent
-                                                  : Colors
-                                                  .green,
-                                              child: data.availability! <
-                                                  1
-                                                  ? const Icon(
-                                                  Icons.check,
-                                                  color: Colors
-                                                      .white)
-                                                  : const Icon(
-                                                  Icons.close,
-                                                  color: Colors
-                                                      .white),
-                                            )
+                                                    radius: 15,
+                                                    backgroundColor: data
+                                                                .availability! ==
+                                                            1
+                                                        ? Colors.deepOrange
+                                                        : data.availability! ==
+                                                                0.7
+                                                            ? Colors
+                                                                .orangeAccent
+                                                            : Colors.green,
+                                                    child: data.availability! <
+                                                            1
+                                                        ? const Icon(
+                                                            Icons.check,
+                                                            color: Colors.white)
+                                                        : const Icon(
+                                                            Icons.close,
+                                                            color:
+                                                                Colors.white),
+                                                  )
                                                 : const CircleAvatar(
-                                                radius: 15,
-                                                backgroundColor:
-                                                Colors.white),
+                                                    radius: 15,
+                                                    backgroundColor:
+                                                        Colors.white),
                                           ),
                                           data.availability != null
                                               ? Positioned(
-                                            left: 37,
-                                            top: 18,
-                                            child: Text(
-                                              data.availability! ==
-                                                  1 ? "Full" :  data.availability! == 0.7
-                                                  ? "Almost Full"
-                                                  : "Available!",
-                                              style:
-                                              const TextStyle(
-                                                fontFamily:
-                                                'MiriamLibre',
-                                                fontSize: 15,
-                                                fontWeight:
-                                                FontWeight
-                                                    .bold,
-                                                color: Color(
-                                                    0xFF626463),
-                                              ),
-                                            ),
-                                          )
+                                                  left: 37,
+                                                  top: 18,
+                                                  child: Text(
+                                                    data.availability! == 1
+                                                        ? fullStr
+                                                        : data.availability! ==
+                                                                0.7
+                                                            ? almostFullStr
+                                                            : availableStr,
+                                                    style: const TextStyle(
+                                                      fontFamily:
+                                                          fontFamilyMiriam,
+                                                      fontSize: _fontSize,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Color(0xFF626463),
+                                                    ),
+                                                  ),
+                                                )
                                               : const Center(),
                                           data.paying_method !=
-                                                  ("בהתאם לשילוט במקום")
+                                                  (unknownPayingMethod)
                                               ? Positioned(
                                                   top: 9,
                                                   left: 145,
                                                   child: data.paying_method
-                                                          .contains("מזומן")
+                                                          .contains(cash)
                                                       ? Image.asset(
                                                           'assets/images/cash_credit.png',
                                                           height: 33,
