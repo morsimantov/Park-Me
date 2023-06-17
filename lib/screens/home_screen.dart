@@ -1,40 +1,34 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:park_me/config/strings.dart';
 import 'package:park_me/provider/google_sign_in.dart';
-import 'package:park_me/screens/search_screen.dart';
 import 'package:park_me/screens/sign_up_screen.dart';
 import 'package:provider/provider.dart';
+import '../config/colors.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
-import '../model/filter_parameters.dart';
 import '../widgets/category.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key, required String title}) : super(key: key);
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 1;
+  static const String _userLoggedText = "User: ";
+  static const String _userLogoutText = "Logout";
+  static const String _logoutMessage = "Do you want to logout";
+  static const String _logoutYes = "Yes";
+  static const String _logoutNo = "No";
+  static const String _headline = "Find a parking spot";
+  static const String _subtitle = "by your own preferences";
+  static const String _signInErrorMessage = "Something Went Wrong!";
+  static const double _fontSize = 16;
+  static const double _fontSizeTitle = 24;
+  static const double _fontSizeSubtitle = 18;
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      if (index == 0) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SearchScreen(
-                title: '',
-                filterStatus:
-                    FilterParameters(false, false, false, false, false, false, false),
-              ),
-            ));
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,69 +38,49 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
-                backgroundColor: Color(0xffebecf3),
+                  backgroundColor: backgroundColor,
                   body: Center(
-                child: CircularProgressIndicator(),
-              ));
+                    child: CircularProgressIndicator(),
+                  ));
             } else if (snapshot.hasData) {
               final user = FirebaseAuth.instance.currentUser!;
               return Scaffold(
                 appBar: AppBar(
-                  backgroundColor: const Color(0xFF03A295),
+                  backgroundColor: backgroundColorAppBar,
                   automaticallyImplyLeading: false,
-                  title: Text("User: " + user.displayName!,
+                  title: Text(_userLoggedText + user.displayName!,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: _fontSize,
                       )),
                   centerTitle: false,
                   actions: [
                     TextButton(
                       child: const Text(
-                        "Logout",
-                        style: TextStyle(color: Colors.white,
-                          fontSize: 16,),
+                        _userLogoutText,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: _fontSize,
+                        ),
                       ),
                       onPressed: () {
                         QuickAlert.show(
-                          context: context,
-                          type: QuickAlertType.confirm,
-                          text: 'Do you want to logout',
-                          confirmBtnText: 'Yes',
-                          cancelBtnText: 'No',
-                          confirmBtnColor: const Color(0xFF03A295),
+                            context: context,
+                            type: QuickAlertType.confirm,
+                            text: _logoutMessage,
+                            confirmBtnText: _logoutYes,
+                            cancelBtnText: _logoutNo,
+                            confirmBtnColor: const Color(0xFF03A295),
                             onConfirmBtnTap: () {
-                              final provider = Provider.of<GoogleSignInProvider>(
-                                  context,
-                                  listen: false);
+                              final provider =
+                                  Provider.of<GoogleSignInProvider>(context,
+                                      listen: false);
                               provider.logout();
-                            }
-                        );
+                            });
                       },
                     ),
                   ],
                 ),
-                // backgroundColor: const Color(0xFFB8E3D6),
                 backgroundColor: const Color(0xffebecf3),
-                // bottomNavigationBar: BottomNavigationBar(
-                //   backgroundColor: const Color(0xffe1e2e8),
-                //   items: const <BottomNavigationBarItem>[
-                //     BottomNavigationBarItem(
-                //       icon: Icon(Icons.search),
-                //       label: 'Search',
-                //     ),
-                //     BottomNavigationBarItem(
-                //       icon: Icon(Icons.home),
-                //       label: 'Home',
-                //     ),
-                //     BottomNavigationBarItem(
-                //       icon: Icon(Icons.star),
-                //       label: 'Favorites',
-                //     ),
-                //   ],
-                //   currentIndex: _selectedIndex,
-                //   selectedItemColor: Colors.teal,
-                //   onTap: _onItemTapped,
-                // ),
                 body: SingleChildScrollView(
                   child: Column(
                     children: [
@@ -135,16 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-                          // Positioned(
-                          //   left: 7,
-                          //   top: 13,
-                          //   child: Image.asset(
-                          //     'assets/images/logo_parkme.png',
-                          //     height: 60,
-                          //     width: 60,
-                          //     fit: BoxFit.fitWidth,
-                          //   ),
-                          // ),
                           Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 80, vertical: 37),
@@ -154,10 +118,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Align(
                                   alignment: Alignment.center,
                                   child: Text(
-                                    'Find a parking spot',
+                                    _headline,
                                     style: TextStyle(
                                       color: Color(0xEC037268),
-                                      fontSize: 24,
+                                      fontSize: _fontSizeTitle,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -168,11 +132,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Align(
                                   alignment: Alignment.center,
                                   child: Text(
-                                    'by your own preferences',
+                                    _subtitle,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: Color(0xEC037268),
-                                      fontSize: 18,
+                                      fontSize: _fontSizeSubtitle,
                                     ),
                                   ),
                                 ),
@@ -187,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               right: 30,
                             ),
                             gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
                               childAspectRatio: 0.8,
                               crossAxisSpacing: 18,
@@ -206,10 +170,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               );
-            }
-            else if (snapshot.hasError) {
-              return const Center(child: Text('Something Went Wrong!'));
-            }  else {
+            } else if (snapshot.hasError) {
+              return const Center(child: Text(_signInErrorMessage));
+            } else {
               return SignUpScreen();
             }
           }),
@@ -219,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class CategoryCard extends StatelessWidget {
   final Category category;
+  static const double _fontSize = 16;
 
   const CategoryCard({
     Key? key,
@@ -266,8 +230,8 @@ class CategoryCard extends StatelessWidget {
                 category.name,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'MiriamLibre',
+                  fontSize: _fontSize,
+                  fontFamily: fontFamilyMiriam,
                 ),
               ),
             ),

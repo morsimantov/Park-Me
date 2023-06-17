@@ -6,7 +6,6 @@ import 'package:park_me/screens/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:get/get.dart';
-import 'package:park_me/controller/location_controller.dart';
 
 
 Future main() async {
@@ -21,7 +20,6 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    Get.put(LocationController());
     return ChangeNotifierProvider(
       create: (context) => GoogleSignInProvider(),
       child: GetMaterialApp(

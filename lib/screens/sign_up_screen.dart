@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:park_me/provider/google_sign_in.dart';
@@ -12,6 +11,10 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  static const String _welcomeMessage = "Hey There, \nWelcome Back";
+  static const String _loginMessage = "Login to your account to continue";
+  static const String _signWithGoogle = "sign Up with Google";
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,7 +40,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Hey There, \nWelcome Back',
+                _welcomeMessage,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -51,7 +54,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Login to your account to continue',
+                _loginMessage,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.black,
@@ -63,15 +66,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                primary: Colors.white,
-                onPrimary: Colors.black,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
                 minimumSize: const Size(double.infinity, 50),
               ),
               icon: const FaIcon(
                 FontAwesomeIcons.google,
                 color: Colors.red,
               ),
-              label: const Text('sign Up with Google'),
+              label: const Text(_signWithGoogle),
               onPressed: () {
                 final provider =
                     Provider.of<GoogleSignInProvider>(context, listen: false);
@@ -81,21 +84,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             const SizedBox(
               height: 20,
             ),
-            RichText(
-                text: const TextSpan(
-                    text: 'Already have an account? ',
-                    style: TextStyle(
-                      color: Colors.black,
-                    ),
-                    children: [
-                  TextSpan(
-                    text: 'Log in',
-                    style: TextStyle(
-                      decoration: TextDecoration.underline,
-                      color: Colors.blue,
-                    ),
-                  )
-                ]))
           ],
         ),
       ),

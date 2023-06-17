@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,12 +9,13 @@ import 'package:park_me/model/filter_parameters.dart';
 import 'package:park_me/model/parking_lot.dart';
 import 'package:park_me/screens/parking_lots_results_screen.dart';
 import 'package:park_me/screens/search_screen.dart';
-import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import '../env.sample.dart';
 import 'favorites_screen.dart';
 import 'home_screen.dart';
 import 'lot_details_screen.dart';
+import '../utils.dart';
+import '../config/strings.dart';
 
 class PlanDriveResultScreen extends StatefulWidget {
   final String wantedLocationAddress;
@@ -34,29 +34,105 @@ class PlanDriveResultScreen extends StatefulWidget {
 }
 
 class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
-  // late List<ParkingLot> parkingLots;
-  // Position? _currentUserPosition;
-  Map<ParkingLot, num> lotsDict = {};
-  late double wantedLocationLat = 0;
-  late double wantedLocationLong = 0;
-  final user = FirebaseAuth.instance.currentUser!;
-  late bool _isResultEmpty = false;
+  static const String _appBarTitle = "Plan a Drive in Advance";
+  static const String _textTitle = "Most likely to be available on ";
+  static const String _atStr = " at ";
+  static const String _moreLotsTextButton = "More Lots In The Area";
+  static const String _addressStr = "Address: ";
+  static const String _notFoundLots1 =
+      "Unfortunately, We didn\'t find available";
+  static const String _notFoundLots2 = "parking lots On ";
+  static const double _fontSize = 16;
+  static const double _fontSizeTitle = 17;
 
-  double? distanceInMeter = 0.0;
+  Map<ParkingLot, num> _lotsDict = {};
+  late double _wantedLocationLat = 0;
+  late double _wantedLocationLong = 0;
+  late bool _isResultEmpty = false;
+  final user = FirebaseAuth.instance.currentUser!;
 
   final parkinglotListKey = GlobalKey<PlanDriveResultScreenState>();
   int _selectedIndex = 0;
 
-  void _onItemTapped(int index) {
+  @override
+  void initState() {
+    super.initState();
+    getParkingLotList();
+  }
+
+  Future<void> getParkingLotList() async {
+    print(widget.wantedLocationAddress);
+    print(widget.timeOfDay);
+    print(widget.day);
+    // Send a GET request to retrieve parking lots based on location, day, and time
+    final response = await http.get(Uri.parse(
+        "${Env.URL_PREFIX}/closest5lots/${widget.wantedLocationAddress}"
+            "/${widget.day}/${widget.timeOfDay}"));
+    final decodedResponse = utf8.decode(response.bodyBytes);
+    // Check if the response is empty
+    if (decodedResponse == '[]') {
+      setState(() {
+        _isResultEmpty = true;
+      });
+      return;
+    }
+    // Decode the response and cast it to a list of Map<String, dynamic>
+    var decodedResponseJson =
+    json.decode(decodedResponse).cast<Map<String, dynamic>>();
+    print(decodedResponse);
+    // Iterate through the response list
+    for (var item in decodedResponseJson) {
+      // Extract the ParkingLot object from the "lot" key
+      ParkingLot parkingLot = ParkingLot.fromJson(item['lot']);
+      // Extract the status value
+      num status = item['status'];
+      // Add the key-value pair to the dictionary
+      _lotsDict[parkingLot] = status;
+    }
+    // Calculate the distances between the wanted location and the parking lots
+    await getLotDistances();
+  }
+
+  Future<void> getLotDistances() async {
+    double? distanceInMeter = 0.0;
+    // Request location permission
+    LocationPermission permission;
+    permission = await Geolocator.requestPermission();
+    // Retrieve the location coordinates for the wanted location address
+    List<Location> locations =
+    await locationFromAddress(widget.wantedLocationAddress);
+    _wantedLocationLat = locations.first.latitude;
+    _wantedLocationLong = locations.first.longitude;
+    for (var parkingLotItem in _lotsDict.keys) {
+      final address = parkingLotItem.address;
+      // Get the location coordinates for the parking lot address
+      List<Location> locations = await locationFromAddress(address);
+      Location lotLocation = locations.first;
+      double parkingLotLat = lotLocation.latitude;
+      double parkingLotLng = lotLocation.longitude;
+      // Calculate the distance between the wanted location and the parking lot
+      distanceInMeter = await Geolocator.distanceBetween(
+        _wantedLocationLat,
+        _wantedLocationLong,
+        parkingLotLat,
+        parkingLotLng,
+      );
+      // Convert the distance from meters to kilometers
+      var distance = distanceInMeter?.round().toInt();
+      // Update the distance of each parking lot
+      parkingLotItem.distance = (distance! / 1000);
+      setState(() {});
+    }
+  }
+
+  void onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
       if (index == 1) {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const HomeScreen(
-                title: '',
-              ),
+              builder: (_) => const HomeScreen(),
             ));
       }
       if (index == 0) {
@@ -80,101 +156,11 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    getParkingLotList();
-  }
-
-  Future<void> getParkingLotList() async {
-    print(widget.wantedLocationAddress);
-    print(widget.timeOfDay);
-    print(widget.day);
-
-    final id = user.uid;
-    print(id);
-    final response = await http.get(Uri.parse(
-        "${Env.URL_PREFIX}/closest5lots/${widget.wantedLocationAddress}"
-        "/${widget.day}/${widget.timeOfDay}"));
-    print("response");
-    final decodedResponse = utf8.decode(response.bodyBytes);
-    if (decodedResponse == '[]') {
-      setState(() {
-        _isResultEmpty = true;
-      });
-      print("empty response");
-      return;
-    }
-    var decodedResponseJson =
-        json.decode(decodedResponse).cast<Map<String, dynamic>>();
-    print(decodedResponse);
-    // Iterate through the response list
-    for (var item in decodedResponseJson) {
-      // Extract the ParkingLot object from the "lot" key
-      ParkingLot parkingLot = ParkingLot.fromJson(item['lot']);
-
-      // Extract the status value
-      num status = item['status'];
-
-      // Add the key-value pair to the dictionary
-      lotsDict[parkingLot] = status;
-    }
-    await _getTheDistance();
-  }
-
-  Future<void> addToFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    String fid = const Uuid().v4();
-    await _firestore.collection('favorites').doc(fid).set({
-      'fid': fid,
-      'uid': uid,
-      'parkingLot': lot_id,
-    });
-  }
-
-  Future<void> removeFromFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    var snapshot = await _firestore
-        .collection("favorites")
-        .where('uid', isEqualTo: uid)
-        .where('parkingLot', isEqualTo: lot_id)
-        .get();
-    for (var doc in snapshot.docs) {
-      await doc.reference.delete();
-    }
-    setState(() {});
-  }
-
-  Future _getTheDistance() async {
-    LocationPermission permission;
-    permission = await Geolocator.requestPermission();
-    List<Location> locations =
-        await locationFromAddress(widget.wantedLocationAddress);
-    wantedLocationLat = locations.first.latitude;
-    wantedLocationLong = locations.first.longitude;
-    for (var parkingLotItem in lotsDict.keys) {
-      final address = parkingLotItem.address;
-      List<Location> locations = await locationFromAddress(address);
-      Location lotLocation = locations.first;
-      double parkingLotLat = lotLocation.latitude;
-      double parkingLotLng = lotLocation.longitude;
-      distanceInMeter = await Geolocator.distanceBetween(
-        wantedLocationLat,
-        wantedLocationLong,
-        parkingLotLat,
-        parkingLotLng,
-      );
-      var distance = distanceInMeter?.round().toInt();
-      parkingLotItem.distance = (distance! / 1000);
-      setState(() {});
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfff6f7f9),
       appBar: AppBar(
-        title: const Text("Plan a Drive in Advance"),
+        title: const Text(_appBarTitle),
         backgroundColor: const Color(0xFF03A295),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -182,128 +168,118 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
-            label: 'Search',
+            label: searchLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: homeLabel,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star),
-            label: 'Favorites',
+            label: favoritesLabel,
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: const Color(0xff67686b),
-        onTap: _onItemTapped,
+        onTap: onItemTapped,
       ),
       body: SingleChildScrollView(
         child: (_isResultEmpty)
             ? Column(children: [
-                // const Padding(
-                //   padding: EdgeInsets.only(top: 25, right: 16, left: 20),
-                //   child: Text(
-                //     "Unfortunately, We didn't find available parking lots",
-                //     style: TextStyle(
-                //       fontFamily: 'MiriamLibre',
-                //       fontSize: 17,
-                //       color: Color(0xFF626463),
-                //     ),
-                //   ),
-                // ),
-          Padding(
-            padding: const EdgeInsets.only(top: 30, left: 30, right: 30),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: DefaultTextStyle.of(context).style,
+                Padding(
+                  padding: const EdgeInsets.only(top: 30, left: 30, right: 30),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const TextSpan(
-                        text: 'Address: ',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontFamily: 'MiriamLibre',
+                      RichText(
+                        text: TextSpan(
+                          style: DefaultTextStyle.of(context).style,
+                          children: [
+                            const TextSpan(
+                              text: _addressStr,
+                              style: TextStyle(
+                                fontSize: _fontSizeTitle,
+                                fontFamily: fontFamilyMiriam,
+                              ),
+                            ),
+                            TextSpan(
+                              text: widget.wantedLocationAddress,
+                              style: const TextStyle(
+                                color: Color(0xFF03A295),
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: fontFamilyMiriam,
+                                fontSize: _fontSizeTitle,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      TextSpan(
-                        text: widget.wantedLocationAddress,
-                        style: const TextStyle(
-                          color: Color(0xFF03A295),
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'MiriamLibre',
-                          fontSize: 17,
+                      const SizedBox(height: 18),
+                      // Add a space of 10 pixels between lines
+                      const Text(
+                        _notFoundLots1,
+                        style: TextStyle(
+                          fontSize: _fontSizeTitle,
+                          fontFamily: fontFamilyMiriam,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      // Add a space of 10 pixels between lines
+                      RichText(
+                        text: TextSpan(
+                          style: DefaultTextStyle.of(context).style,
+                          children: [
+                            const TextSpan(
+                              text: _notFoundLots2,
+                              style: TextStyle(
+                                fontSize: _fontSizeTitle,
+                                fontFamily: fontFamilyMiriam,
+                              ),
+                            ),
+                            TextSpan(
+                              text: widget.day,
+                              style: const TextStyle(
+                                color: Color(0xFF03A295),
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: fontFamilyMiriam,
+                                fontSize: _fontSizeTitle,
+                              ),
+                            ),
+                            const TextSpan(
+                              text: _atStr,
+                              style: TextStyle(
+                                fontSize: _fontSizeTitle,
+                                fontFamily: fontFamilyMiriam,
+                              ),
+                            ),
+                            TextSpan(
+                              text: widget.timeOfDay,
+                              style: const TextStyle(
+                                color: Color(0xFF03A295),
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: fontFamilyMiriam,
+                                fontSize: _fontSizeTitle,
+                              ),
+                            ),
+                            const TextSpan(
+                              text: '.',
+                              style: TextStyle(
+                                fontSize: _fontSizeTitle,
+                                fontFamily: fontFamilyMiriam,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18), // Add a space of 10 pixels between lines
-                const Text(
-                  'Unfortunately, We didn\'t find available',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontFamily: 'MiriamLibre',
-                  ),
-                ),
-                const SizedBox(height: 5), // Add a space of 10 pixels between lines
-                RichText(
-                  text: TextSpan(
-                    style: DefaultTextStyle.of(context).style,
-                    children: [
-                      const TextSpan(
-                        text: 'parking lots On ',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontFamily: 'MiriamLibre',
-                        ),
-                      ),
-                      TextSpan(
-                        text: widget.day,
-                        style: const TextStyle(
-                          color: Color(0xFF03A295),
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'MiriamLibre',
-                          fontSize: 17,
-                        ),
-                      ),
-                      const TextSpan(
-                        text: ' at ',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontFamily: 'MiriamLibre',
-                        ),
-                      ),
-                      TextSpan(
-                        text: widget.timeOfDay,
-                        style: const TextStyle(
-                          color: Color(0xFF03A295),
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'MiriamLibre',
-                          fontSize: 17,
-                        ),
-                      ),
-                      const TextSpan(
-                        text: '.',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontFamily: 'MiriamLibre',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-        ])
+              ])
             : // By default, show a loading spinner.
-            (_isResultEmpty == false && lotsDict.isEmpty)
+            (_isResultEmpty == false && _lotsDict.isEmpty)
                 ? SizedBox(
                     height: MediaQuery.of(context).size.height / 1.2,
                     child: const Center(
@@ -321,10 +297,10 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                               style: DefaultTextStyle.of(context).style,
                               children: [
                                 const TextSpan(
-                                  text: 'Address: ',
+                                  text: _addressStr,
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    fontFamily: 'MiriamLibre',
+                                    fontSize: _fontSize,
+                                    fontFamily: fontFamilyMiriam,
                                   ),
                                 ),
                                 TextSpan(
@@ -334,8 +310,8 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                     fontStyle: FontStyle.italic,
                                     fontWeight: FontWeight.bold,
                                     // fontSize: 18,
-                                    fontFamily: 'MiriamLibre',
-                                    fontSize: 16,
+                                    fontFamily: fontFamilyMiriam,
+                                    fontSize: _fontSize,
                                   ),
                                 ),
                               ],
@@ -350,10 +326,10 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                               style: DefaultTextStyle.of(context).style,
                               children: [
                                 const TextSpan(
-                                  text: 'Most likely to be available on ',
+                                  text: _textTitle,
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    fontFamily: 'MiriamLibre',
+                                    fontSize: _fontSize,
+                                    fontFamily: fontFamilyMiriam,
                                   ),
                                 ),
                                 TextSpan(
@@ -363,15 +339,15 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                     fontStyle: FontStyle.italic,
                                     fontWeight: FontWeight.bold,
                                     // fontSize: 18,
-                                    fontFamily: 'MiriamLibre',
-                                    fontSize: 16,
+                                    fontFamily: fontFamilyMiriam,
+                                    fontSize: _fontSize,
                                   ),
                                 ),
                                 const TextSpan(
-                                  text: ' at ',
+                                  text: _atStr,
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    fontFamily: 'MiriamLibre',
+                                    fontSize: _fontSize,
+                                    fontFamily: fontFamilyMiriam,
                                   ),
                                 ),
                                 TextSpan(
@@ -380,15 +356,15 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                     color: Color(0xFF03A295),
                                     fontStyle: FontStyle.italic,
                                     fontWeight: FontWeight.bold,
-                                    fontFamily: 'MiriamLibre',
-                                    fontSize: 16,
+                                    fontFamily: fontFamilyMiriam,
+                                    fontSize: _fontSize,
                                   ),
                                 ),
                                 const TextSpan(
                                   text: ':',
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    fontFamily: 'MiriamLibre',
+                                    fontSize: _fontSize,
+                                    fontFamily: fontFamilyMiriam,
                                   ),
                                 ),
                               ],
@@ -403,10 +379,10 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                           child: ListView.builder(
                             physics: const NeverScrollableScrollPhysics(),
                             shrinkWrap: true,
-                            itemCount: lotsDict.keys.length,
+                            itemCount: _lotsDict.keys.length,
                             itemBuilder: (BuildContext context, int index) {
                               List<ParkingLot> sortedList =
-                                  lotsDict.keys.toList();
+                                  _lotsDict.keys.toList();
                               sortedList
                                   .sort((a, b) => a.availability != 0 ? 1 : 0);
                               var data = (sortedList)[index];
@@ -463,7 +439,7 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                             Text(
                                               "${data.distance.toStringAsFixed(1)} KM Away",
                                               style: const TextStyle(
-                                                fontFamily: 'MiriamLibre',
+                                                fontFamily: fontFamilyMiriam,
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
                                                 color: Color(0xFF626463),
@@ -515,7 +491,7 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                                                 snapshot) {
                                                       if (snapshot.data ==
                                                           null) {
-                                                        return Text("");
+                                                        return const Text("");
                                                       }
                                                       return IconButton(
                                                           icon: snapshot
@@ -566,19 +542,19 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                                           true &&
                                                       data.fixed_price !=
                                                           null) {
-                                                    return "תשלום שעתי וחד פעמי";
+                                                    return fixedAnHourlyPrice;
                                                   } else if (data.hourly_fare ==
                                                           true &&
                                                       data.fixed_price ==
                                                           null) {
-                                                    return "תשלום שעתי בלבד";
+                                                    return hourlyPrice;
                                                   } else if (data.hourly_fare !=
                                                           true &&
                                                       data.fixed_price !=
                                                           null) {
-                                                    return "תשלום חד פעמי";
+                                                    return fixedPrice;
                                                   }
-                                                  return "תשלום בהתאם לשילוט במקום";
+                                                  return unknownPaying;
                                                 })()),
                                               ),
                                               Stack(
@@ -590,17 +566,18 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                                             top: 10),
                                                     child: CircleAvatar(
                                                       radius: 15,
-                                                      backgroundColor: lotsDict[
+                                                      backgroundColor: _lotsDict[
                                                                   data] ==
                                                               0
                                                           ? Colors.green
-                                                          : lotsDict[data] ==
+                                                          : _lotsDict[data] ==
                                                                   0.7
                                                               ? Colors
                                                                   .orangeAccent
                                                               : Colors
                                                                   .deepOrange,
-                                                      child: lotsDict[data] == 0
+                                                      child: _lotsDict[data] ==
+                                                              0
                                                           ? const Icon(
                                                               Icons.check,
                                                               color:
@@ -615,15 +592,15 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                                     left: 37,
                                                     top: 18,
                                                     child: Text(
-                                                      lotsDict[data] == 0
-                                                          ? 'Available'
-                                                          : lotsDict[data] ==
+                                                      _lotsDict[data] == 0
+                                                          ? availableStr
+                                                          : _lotsDict[data] ==
                                                                   0.7
-                                                              ? 'Almost Full'
-                                                              : 'Full',
+                                                              ? almostFullStr
+                                                              : fullStr,
                                                       style: const TextStyle(
                                                         fontFamily:
-                                                            'MiriamLibre',
+                                                            fontFamilyMiriam,
                                                         fontSize: 15,
                                                         fontWeight:
                                                             FontWeight.bold,
@@ -633,14 +610,14 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                                     ),
                                                   ),
                                                   data.paying_method !=
-                                                          ("בהתאם לשילוט במקום")
+                                                          (unknownPayingMethod)
                                                       ? Positioned(
                                                           top: 9,
                                                           left: 145,
                                                           child: data
                                                                   .paying_method
                                                                   .contains(
-                                                                      "מזומן")
+                                                                      cash)
                                                               ? Image.asset(
                                                                   'assets/images/cash_credit.png',
                                                                   height: 33,
@@ -710,8 +687,8 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                                     ));
                                 // Respond to button press
                               },
-                              icon: Icon(Icons.commute, size: 18),
-                              label: Text('More Lots In The Area'),
+                              icon: const Icon(Icons.commute, size: 18),
+                              label: const Text(_moreLotsTextButton),
                             ),
                           ),
                         ),

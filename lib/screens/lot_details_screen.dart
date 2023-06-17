@@ -11,7 +11,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:park_me/model/parking_lot.dart';
-import 'package:geocoding/geocoding.dart';
+import '../utils.dart';
+import '../config/strings.dart';
 
 class LotDetailsScreen extends StatefulWidget {
   final int lotId;
@@ -26,31 +27,21 @@ class LotDetailsScreen extends StatefulWidget {
 }
 
 class LotDetailsScreenState extends State<LotDetailsScreen> {
-  late ParkingLot parkingLot;
+  static const String _openingHoursStr = "שעות פעילות:";
+  static const String _priceStr = "מחיר:";
+  static const String _fixedPriceStr = "מחיר קבוע:";
+  static const String _hourlyPriceStr = "מחיר שעתי:";
+  static const String _moreDetailsStr = "פרטים נוספים:";
+
+  // Parking lot instance that will store the current parking lot
+  late ParkingLot _parkingLot;
   final user = FirebaseAuth.instance.currentUser!;
-
-  Future<void> getParkingLotDetails() async {
-    final int lot_id = widget.lotId;
-    final response =
-        await http.get(Uri.parse("${Env.URL_PREFIX}/lots/$lot_id"));
-    print("response");
-    final decodedResponse = utf8.decode(response.bodyBytes);
-
-    final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
-    List<ParkingLot> parkingLotTemp = items.map<ParkingLot>((json) {
-      return ParkingLot.fromJson(json);
-    }).toList();
-
-    setState(() {
-      parkingLot = parkingLotTemp.first;
-      parkingLot.distance = widget.distance;
-    });
-  }
 
   @override
   void initState() {
     super.initState();
-    parkingLot = ParkingLot(
+    // Initialize parking lot instance to default values
+    _parkingLot = ParkingLot(
         lot_id: 0,
         lot_name: "",
         address: "",
@@ -63,46 +54,59 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
     getParkingLotDetails();
   }
 
-  int convertToWalkingDistance(double distanceInKm) {
-    // Assuming an average walking speed of 5 kilometers per hour
-    double walkingSpeedKph = 5.0;
-    // Convert walking speed from kilometers per hour to kilometers per minute
-    double walkingSpeedKpm = walkingSpeedKph / 60.0;
-    // Calculate the walking time in minutes
-    double walkingTimeMinutes = distanceInKm / walkingSpeedKpm;
-    return walkingTimeMinutes.round();
+  Future<void> getParkingLotDetails() async {
+    // Retrieve the lotId from the widget
+    final int lotId = widget.lotId;
+    // Send a GET request to retrieve parking lot details based on the lotId
+    final response = await http.get(Uri.parse("${Env.URL_PREFIX}/lots/$lotId"));
+    final decodedResponse = utf8.decode(response.bodyBytes);
+    final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
+    // Map the JSON response to a list of ParkingLot objects
+    List<ParkingLot> parkingLotTemp = items.map<ParkingLot>((json) {
+      return ParkingLot.fromJson(json);
+    }).toList();
+    setState(() {
+      // Update the parkingLot instance with the retrieved parking lot details
+      _parkingLot = parkingLotTemp.first;
+      _parkingLot.distance = widget.distance;
+    });
   }
 
   Future<void> launchWaze(double lat, double lng) async {
-    final Uri url = Uri.parse(
-        'waze://?ll=${lat.toString()},${lng.toString()}');
+    // Construct the Waze URI for launching the navigation
+    final Uri url = Uri.parse('waze://?ll=${lat.toString()},${lng.toString()}');
+    // Fallback URL in case the Waze app is not installed
     final Uri fallbackUrl = Uri.parse(
         'https://waze.com/ul?ll=${lat.toString()},${lng.toString()}&navigate=yes');
     try {
       bool launched = false;
       if (!kIsWeb) {
+        // Attempt to launch the Waze app using the Waze URI
         launched = await launchUrl(url);
       }
       if (!launched) {
+        // Launch the fallback URL if the Waze app could not be launched
         await launchUrl(fallbackUrl);
       }
     } catch (e) {
+      // Launch the fallback URL in case of any errors
       await launchUrl(fallbackUrl);
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: (parkingLot.lot_id == 0)
+      body: (_parkingLot.lot_id == 0)
           ? const Center(
               child: CircularProgressIndicator(),
             )
           : CustomScrollView(
               slivers: <Widget>[
                 LotDetailsAppBar(
-                  image: parkingLot.image,
-                  lotId: parkingLot.lot_id,
+                  image: _parkingLot.image,
+                  lotId: _parkingLot.lot_id,
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -113,61 +117,72 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8.0),
-                      Directionality(
-                        textDirection: TextDirection.rtl,child: Row(
-                            children: [
-                              Directionality(
-                                textDirection: TextDirection.rtl,child: Padding(
-                                padding:
-                                const EdgeInsets.only(top: 5,),
-                                child: Text(
-                                  parkingLot.lot_name,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                  ),
-                                ),
-                              ),),
-                              Padding(
-                                  padding:
-                                  const EdgeInsets.only(top: 5, right: 15),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          offset: const Offset(0, 4),
-                                          blurRadius: 4.0,
-                                          color: Colors.black.withOpacity(0.25),
-                                        ),
-                                      ],
+                          Directionality(
+                            textDirection: TextDirection.rtl,
+                            child: Row(
+                              children: [
+                                Directionality(
+                                  textDirection: TextDirection.rtl,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: 5,
                                     ),
-                                    child: ClipOval(
-                                      child: Material(
-                                        color: Colors.blue, // Button color
-                                        child: InkWell(
-                                          splashColor: Colors.cyan, // Splash color
-                                          onTap: () async {
-                                            List<Location> locations =
-                                            await locationFromAddress(
-                                                parkingLot.address);
-                                            launchWaze(
-                                                locations.first.latitude,
-                                                locations.first.longitude);
-                                          },
-                                          child: const SizedBox(width: 33, height: 33, child: Icon(FontAwesomeIcons.waze, color: Colors.white,
-                                            size: 20,)),
-                                        ),
+                                    child: Text(
+                                      _parkingLot.lot_name,
+                                      style: const TextStyle(
+                                        fontSize: 20,
                                       ),
                                     ),
-                                  )
-                              ),
-
-                            ],
-                          ),),
+                                  ),
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.only(
+                                        top: 5, right: 15),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            offset: const Offset(0, 4),
+                                            blurRadius: 4.0,
+                                            color:
+                                                Colors.black.withOpacity(0.25),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipOval(
+                                        child: Material(
+                                          color: Colors.blue, // Button color
+                                          child: InkWell(
+                                            splashColor:
+                                                Colors.cyan, // Splash color
+                                            onTap: () async {
+                                              List<Location> locations =
+                                                  await locationFromAddress(
+                                                      _parkingLot.address);
+                                              launchWaze(
+                                                  locations.first.latitude,
+                                                  locations.first.longitude);
+                                            },
+                                            child: const SizedBox(
+                                                width: 33,
+                                                height: 33,
+                                                child: Icon(
+                                                  FontAwesomeIcons.waze,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                )),
+                                          ),
+                                        ),
+                                      ),
+                                    )),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 7.0),
                           Row(
                             children: [
-                              Text(parkingLot.address),
+                              Text(_parkingLot.address),
                               const SizedBox(width: 8.0),
                               Container(
                                 height: 5.0,
@@ -181,9 +196,9 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                               Directionality(
                                 textDirection: TextDirection.ltr,
                                 child: Text(
-                                  "${parkingLot.distance.toStringAsFixed(1)} KM Away",
+                                  "${_parkingLot.distance.toStringAsFixed(1)} KM Away",
                                   style: const TextStyle(
-                                    fontFamily: 'MiriamLibre',
+                                    fontFamily: fontFamilyMiriam,
                                   ),
                                 ),
                               ),
@@ -195,7 +210,7 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                parkingLot.availability != null
+                                _parkingLot.availability != null
                                     ? Row(
                                         children: [
                                           Container(
@@ -207,28 +222,30 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
                                               // color: kPrimaryColor,
-                                              color:
-                                                  parkingLot.availability! ==
-                                                      1 ? Colors
-                                                      .deepOrange : parkingLot.availability! == 0.7
-                                                      ? Colors
-                                                      .orangeAccent
-                                                      : Colors
-                                                      .green,
+                                              color: _parkingLot
+                                                          .availability! ==
+                                                      1
+                                                  ? Colors.deepOrange
+                                                  : _parkingLot.availability! ==
+                                                          0.7
+                                                      ? Colors.orangeAccent
+                                                      : Colors.green,
                                             ),
-                                            child: parkingLot.availability! < 1
+                                            child: _parkingLot.availability! < 1
                                                 ? const Icon(Icons.check,
                                                     color: Colors.white)
                                                 : const Icon(Icons.close,
                                                     color: Colors.white),
                                           ),
                                           Text(
-                                            parkingLot.availability! ==
-                                                1 ? "Full" :  parkingLot.availability! == 0.7
-                                                ? "Almost Full"
-                                                : "Available!",
+                                            _parkingLot.availability! == 1
+                                                ? fullStr
+                                                : _parkingLot.availability! ==
+                                                        0.7
+                                                    ? almostFullStr
+                                                    : availableStr,
                                             style: const TextStyle(
-                                              fontFamily: 'MiriamLibre',
+                                              fontFamily: fontFamilyMiriam,
                                               fontWeight: FontWeight.bold,
                                               color: Color(0xFF626463),
                                             ),
@@ -253,9 +270,9 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                           ),
                                         ),
                                         Text(
-                                          '${convertToWalkingDistance(parkingLot.distance)} min Away',
+                                          '${convertToWalkingDistance(_parkingLot.distance)} min Away',
                                           style: const TextStyle(
-                                            fontFamily: 'MiriamLibre',
+                                            fontFamily: fontFamilyMiriam,
                                             fontWeight: FontWeight.bold,
                                             color: Color(0xFF626463),
                                           ),
@@ -268,14 +285,13 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                             ),
                           ),
                           const SizedBox(height: 6.0),
-
-                          parkingLot.availability != null
+                          _parkingLot.availability != null
                               ? Directionality(
                                   textDirection: TextDirection.ltr,
                                   child: Row(
                                     children: [
                                       Text(
-                                        'True to: ${parkingLot.updated_time?.substring(0, parkingLot.updated_time?.indexOf(":", (parkingLot.updated_time?.indexOf(":") ?? -1) + 1))}',
+                                        'True to: ${_parkingLot.updated_time?.substring(0, _parkingLot.updated_time?.indexOf(":", (_parkingLot.updated_time?.indexOf(":") ?? -1) + 1))}',
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium!
@@ -289,14 +305,14 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                           const SizedBox(height: 16.0),
                           const Divider(color: kOutlineColor, height: 1.0),
                           const SizedBox(height: 16.0),
-                          (parkingLot.hourly_fare != null &&
-                                  parkingLot.hourly_fare == true)
+                          (_parkingLot.hourly_fare != null &&
+                                  _parkingLot.hourly_fare == true)
                               ? Column(
                                   children: [
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: Text(
-                                        'מחיר שעתי:',
+                                        _hourlyPriceStr,
                                         textAlign: TextAlign.right,
                                         style: Theme.of(context)
                                             .textTheme
@@ -305,7 +321,7 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                     ),
                                     const SizedBox(height: 8.0),
                                     Text(
-                                      parkingLot.fare!,
+                                      _parkingLot.fare!,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyMedium!
@@ -318,13 +334,13 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                   ],
                                 )
                               : const Center(),
-                          (parkingLot.fare != null &&
-                                  parkingLot.hourly_fare != true)
+                          (_parkingLot.fare != null &&
+                                  _parkingLot.hourly_fare != true)
                               ? Column(
                                   children: [
                                     Align(
                                       alignment: Alignment.centerRight,
-                                      child: Text('מחיר:',
+                                      child: Text(_priceStr,
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleMedium),
@@ -333,7 +349,7 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: Text(
-                                        parkingLot.fare!,
+                                        _parkingLot.fare!,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium!
@@ -348,14 +364,14 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                   ],
                                 )
                               : const Center(),
-                          parkingLot.fixed_price == null
+                          _parkingLot.fixed_price == null
                               ? const Center()
                               : Column(
                                   children: [
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: Text(
-                                        'מחיר קבוע:',
+                                        _fixedPriceStr,
                                         textAlign: TextAlign.right,
                                         style: Theme.of(context)
                                             .textTheme
@@ -366,7 +382,7 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: Text(
-                                        "${parkingLot.fixed_price} ש\"ח לשעה",
+                                        "${_parkingLot.fixed_price} ש\"ח לשעה",
                                         textAlign: TextAlign.left,
                                       ),
                                     ),
@@ -374,7 +390,7 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: Text(
-                                        "${parkingLot.fixed_price_hours}",
+                                        "${_parkingLot.fixed_price_hours}",
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium!
@@ -389,12 +405,12 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                   ],
                                 ),
                           Text(
-                            'שעות פעילות:',
+                            _openingHoursStr,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8.0),
                           Text(
-                            parkingLot.opening_hours,
+                            _parkingLot.opening_hours,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium!
@@ -404,11 +420,11 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                           const Divider(color: kOutlineColor, height: 1.0),
                           const SizedBox(height: 16.0),
                           Text(
-                            'פרטים נוספים:',
+                            _moreDetailsStr,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8.0),
-                          (parkingLot.is_accessible != true)
+                          (_parkingLot.is_accessible != true)
                               ? const Center()
                               : Directionality(
                                   textDirection: TextDirection.ltr,
@@ -437,14 +453,14 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                         const Text(
                                           "Accessible",
                                           style: TextStyle(
-                                            fontFamily: 'MiriamLibre',
+                                            fontFamily: fontFamilyMiriam,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
-                          (parkingLot.is_underground != true)
+                          (_parkingLot.is_underground != true)
                               ? const Center()
                               : Directionality(
                                   textDirection: TextDirection.ltr,
@@ -471,16 +487,16 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                           ),
                                         ),
                                         const Text(
-                                          "Underground",
+                                          undergroundButton,
                                           style: TextStyle(
-                                            fontFamily: 'MiriamLibre',
+                                            fontFamily: fontFamilyMiriam,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
-                          (parkingLot.paying_method == "בהתאם לשילוט במקום")
+                          (_parkingLot.paying_method == unknownPayingMethod)
                               ? const Center()
                               : Directionality(
                                   textDirection: TextDirection.ltr,
@@ -499,16 +515,16 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                             shape: BoxShape.circle,
                                             color: Color(0xFFE3FFF8),
                                           ),
-                                          child: (parkingLot.paying_method ==
-                                                  "מזומן + אשראי (חניון ממוכן)")
+                                          child: (_parkingLot.paying_method ==
+                                                  cashAndCreditH)
                                               ? Image.asset(
                                                   'assets/images/cash_credit.png',
                                                   height: 20,
                                                   width: 20,
                                                   fit: BoxFit.fitWidth,
                                                 )
-                                              : (parkingLot.paying_method ==
-                                                      "מזומן")
+                                              : (_parkingLot.paying_method ==
+                                                      cash)
                                                   ? Image.asset(
                                                       'assets/images/cash.png',
                                                       height: 23,
@@ -522,27 +538,27 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                                       fit: BoxFit.fitWidth,
                                                     ),
                                         ),
-                                        (parkingLot.paying_method ==
-                                                "בהתאם לשילוט במקום")
+                                        (_parkingLot.paying_method ==
+                                                unknownPayingMethod)
                                             ? const Center()
                                             : Text(
-                                                (parkingLot.paying_method ==
-                                                        "מזומן + אשראי (חניון ממוכן)")
-                                                    ? "Cash and Credit"
-                                                    : (parkingLot
+                                                (_parkingLot.paying_method ==
+                                                        cashAndCreditH)
+                                                    ? cashAndCreditE
+                                                    : (_parkingLot
                                                                 .paying_method ==
-                                                            "מזומן")
-                                                        ? "Payment in Cash"
-                                                        : "Credit and Digital only",
+                                                            cash)
+                                                        ? cashPayment
+                                                        : creditPayment,
                                                 style: const TextStyle(
-                                                  fontFamily: 'MiriamLibre',
+                                                  fontFamily: fontFamilyMiriam,
                                                 ),
                                               ),
                                       ],
                                     ),
                                   ),
                                 ),
-                          parkingLot.resident_discount != null
+                          _parkingLot.resident_discount != null
                               ? Directionality(
                                   textDirection: TextDirection.ltr,
                                   child: Padding(
@@ -568,12 +584,12 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                           ),
                                         ),
                                         Text(
-                                          (parkingLot.resident_discount ==
-                                                  "בסך 50% מהתעריף")
-                                              ? "50% Resident Discount"
-                                              : "70% Resident Discount",
+                                          (_parkingLot.resident_discount ==
+                                                  fiftyDiscountH)
+                                              ? fiftyDiscountE
+                                              : seventyDiscountE,
                                           style: const TextStyle(
-                                            fontFamily: 'MiriamLibre',
+                                            fontFamily: fontFamilyMiriam,
                                           ),
                                         ),
                                       ],
@@ -604,9 +620,9 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    "${parkingLot.num_parking_spots} parking spots",
+                                    "${_parkingLot.num_parking_spots} parking spots",
                                     style: const TextStyle(
-                                      fontFamily: 'MiriamLibre',
+                                      fontFamily: fontFamilyMiriam,
                                     ),
                                   ),
                                 ],
@@ -614,60 +630,6 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
                             ),
                           ),
                           const SizedBox(height: 16.0),
-                          // Text(
-                          //   'Steps',
-                          //   style: Theme
-                          //       .of(context)
-                          //       .textTheme
-                          //       .titleMedium,
-                          // ),
-                          // const SizedBox(height: 16.0),
-                          // Row(
-                          //   crossAxisAlignment: CrossAxisAlignment.start,
-                          //   children: [
-                          //     Container(
-                          //       height: 24.0,
-                          //       width: 24.0,
-                          //       alignment: Alignment.center,
-                          //       margin: const EdgeInsets.only(right: 16.0),
-                          //       decoration: const BoxDecoration(
-                          //         shape: BoxShape.circle,
-                          //         color: kMainTextColor,
-                          //       ),
-                          //       child: Text(
-                          //         '1',
-                          //         style: Theme
-                          //             .of(context)
-                          //             .textTheme
-                          //             .bodySmall!
-                          //             .copyWith(
-                          //             color: Colors.white,
-                          //             fontWeight: FontWeight.w700),
-                          //       ),
-                          //     ),
-                          //     Expanded(
-                          //       child: Column(
-                          //         children: [
-                          //           Text(
-                          //             'Your recipe has been uploaded, you can see it on your profile. Your recipe has been uploaded, you can see it on your',
-                          //             style: Theme
-                          //                 .of(context)
-                          //                 .textTheme
-                          //                 .bodyMedium,
-                          //           ),
-                          //           const SizedBox(height: 16.0),
-                          //           ClipRRect(
-                          //             borderRadius: BorderRadius.circular(12.0),
-                          //             child: Image.network(
-                          //               'https://images.unsplash.com/photo-1466637574441-749b8f19452f?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=300&q=80',
-                          //             ),
-                          //           ),
-                          //         ],
-                          //       ),
-                          //     ),
-                          //   ],
-                          // ),
-                          // const SizedBox(height: 32.0),
                         ],
                       ),
                     ),
