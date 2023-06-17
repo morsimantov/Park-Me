@@ -393,7 +393,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                 ));
                           },
                         )
-                      : const SizedBox(), // Empty SizedBox when the suggestion list is hidden
+                       // Empty SizedBox when the suggestion list is hidden
+                      : const SizedBox(),
                 ),
               ],
             ),
