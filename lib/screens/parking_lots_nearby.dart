@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../env.sample.dart';
 import 'lot_details_screen.dart';
+import '../utils.dart';
 import '../config/strings.dart';
 
 class ParkingLotsNearbyScreen extends StatefulWidget {
@@ -37,16 +38,16 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
   @override
   void initState() {
     super.initState();
-    _parkingLots = [];
     // Get parking lots list
+    _parkingLots = [];
     getParkingLotList();
   }
 
   Future<void> getParkingLotList() async {
     // Send a GET request to retrieve the parking lot list from the specified URL
     final response = await http.get(Uri.parse(Env.URL_PREFIX));
-    final decodedResponse = utf8.decode(response.bodyBytes);
     // Decode the response and cast it to a list of Map<String, dynamic>
+    final decodedResponse = utf8.decode(response.bodyBytes);
     final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
     // Map the JSON response to a list of ParkingLot objects
     List<ParkingLot> parkingLotsTemp = items.map<ParkingLot>((json) {
@@ -58,26 +59,23 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
     });
     // Retrieve the distances for the parking lots
     await getLotDistances();
-    // Sort the parking lots based on distance
+    // Sort the parking lots list based on distance
     _parkingLotsOrigin.sort((a, b) => a.distance.compareTo(b.distance));
     // Take the first 8 closest parking lots from the sorted list
     _parkingLotsOrigin = _parkingLotsOrigin.take(8).toList();
-    // Update the parkingLots list with the selected parking lots
     _parkingLots = _parkingLotsOrigin;
   }
 
-
   Future getLotDistances() async {
-    LocationPermission permission;
     double? distanceInMeter = 0.0;
     // Request location permission
+    LocationPermission permission;
     permission = await Geolocator.requestPermission();
-    // Get the current user's position
     _currentUserPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     _wantedLocationLat = _currentUserPosition!.latitude;
     _wantedLocationLong = _currentUserPosition!.longitude;
-    for (var parkingLotItem in _parkingLots) {
+    for (var parkingLotItem in _parkingLotsOrigin) {
       final address = parkingLotItem.address;
       // Get the location coordinates for the parking lot address
       List<Location> locations = await locationFromAddress(address);
@@ -165,123 +163,123 @@ class _ParkingLotsNearbyScreenState extends State<ParkingLotsNearbyScreen> {
           child: (_parkingLots.isEmpty)
               ? const CircularProgressIndicator()
               : GridView.builder(
-                  itemCount: _parkingLots.length,
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 200,
-                    childAspectRatio: 3 / 3,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 15,
-                  ),
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LotDetailsScreen(
-                                lotId: _parkingLots[index].lot_id,
-                                distance: _parkingLots[index].distance,
+              itemCount: _parkingLots.length,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                childAspectRatio: 3 / 3,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+              ),
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LotDetailsScreen(
+                            lotId: _parkingLots[index].lot_id,
+                            distance: _parkingLots[index].distance,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      height: height * 0.9,
+                      width: width * 0.3,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        color: const Color(0xffd6e6e6),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0xFFCCC8C8),
+                              blurRadius: 5,
+                              spreadRadius: 3,
+                              offset: Offset(3, 2)),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: height * 0.15,
+                            width: width,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              color: Colors.teal,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(.1),
+                                  blurRadius: 6.0,
+                                  spreadRadius: .1,
+                                ), //BoxShadow
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius:
+                              const BorderRadiusDirectional.only(
+                                topEnd: Radius.circular(8.0),
+                                topStart: Radius.circular(8.0),
+                              ),
+                              child: Image.network(
+                                _parkingLots[index].image,
+                                fit: BoxFit.fill,
                               ),
                             ),
-                          );
-                        },
-                        child: Container(
-                          height: height * 0.9,
-                          width: width * 0.3,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15),
-                            color: const Color(0xffd6e6e6),
-                            boxShadow: const [
-                              BoxShadow(
-                                  color: Color(0xFFCCC8C8),
-                                  blurRadius: 5,
-                                  spreadRadius: 3,
-                                  offset: Offset(3, 2)),
-                            ],
                           ),
-                          child: Column(
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                height: height * 0.15,
-                                width: width,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(15),
-                                  color: Colors.teal,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(.1),
-                                      blurRadius: 6.0,
-                                      spreadRadius: .1,
-                                    ), //BoxShadow
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius:
-                                      const BorderRadiusDirectional.only(
-                                    topEnd: Radius.circular(8.0),
-                                    topStart: Radius.circular(8.0),
-                                  ),
-                                  child: Image.network(
-                                    _parkingLots[index].image,
-                                    fit: BoxFit.fill,
-                                  ),
+                              Text(
+                                _parkingLots[index].lot_name,
+                                style: const TextStyle(
+                                  fontSize: _fontSizeTitle,
+                                  color: Color(0xFF626463),
                                 ),
                               ),
                               const SizedBox(
-                                height: 10,
+                                width: 5,
                               ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    _parkingLots[index].lot_name,
-                                    style: const TextStyle(
-                                      fontSize: _fontSizeTitle,
-                                      color: Color(0xFF626463),
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    width: 5,
-                                  ),
-                                  (_parkingLots[index].availability != null)
-                                      ? CircleAvatar(
-                                          radius: 5,
-                                          backgroundColor: _parkingLots[index]
-                                                      .availability ==
-                                                  0
-                                              ? Colors.green
-                                              : _parkingLots[index]
-                                                          .availability ==
-                                                      0.7
-                                                  ? Colors.orangeAccent
-                                                  : Colors.deepOrange,
-                                        )
-                                      : const Center(),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: 5,
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.location_on,
-                                      color: Colors.teal),
-                                  Text(
-                                    "${_parkingLots[index].distance.toStringAsFixed(1)} KM Away",
-                                    style: const TextStyle(
-                                      fontFamily: fontFamilyMiriam,
-                                      fontSize: _fontSize,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF626463),
-                                    ),
-                                  ),
-                                ],
+                              (_parkingLots[index].availability != null)
+                                  ? CircleAvatar(
+                                radius: 5,
+                                backgroundColor: _parkingLots[index]
+                                    .availability ==
+                                    0
+                                    ? Colors.green
+                                    : _parkingLots[index]
+                                    .availability ==
+                                    0.7
+                                    ? Colors.orangeAccent
+                                    : Colors.deepOrange,
+                              )
+                                  : const Center(),
+                            ],
+                          ),
+                          const SizedBox(
+                            height: 5,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.location_on,
+                                  color: Colors.teal),
+                              Text(
+                                "${_parkingLots[index].distance.toStringAsFixed(1)} KM Away",
+                                style: const TextStyle(
+                                  fontFamily: fontFamilyMiriam,
+                                  fontSize: _fontSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF626463),
+                                ),
                               ),
                             ],
                           ),
-                        ));
-                  }),
+                        ],
+                      ),
+                    ));
+              }),
         ),
       ),
     );
