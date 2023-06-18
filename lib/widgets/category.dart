@@ -20,12 +20,18 @@ class Category {
 List<Category> categoryList = [
   Category(
     name: 'Find a Spot Now',
-    function: (context) => SearchScreen(title: '', filterStatus: FilterParameters(false, false, false, false, false, false, false),),
+    function: (context) => SearchScreen(
+      title: '',
+      filterStatus:
+          FilterParameters(false, false, false, false, false, false, false),
+    ),
     thumbnail: 'assets/images/1.png',
   ),
   Category(
     name: 'Plan a Drive',
-    function: (context) => const PlanDriveScreen(title: '',),
+    function: (context) => const PlanDriveScreen(
+      title: '',
+    ),
     thumbnail: 'assets/images/3.png',
   ),
   Category(

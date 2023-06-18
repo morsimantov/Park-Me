@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:quickalert/quickalert.dart';
 import '../config/strings.dart';
 import '../utils.dart';
+import 'package:flutter/services.dart';
 
 class PlanDriveScreen extends StatefulWidget {
   const PlanDriveScreen({super.key, required this.title});
@@ -135,7 +136,7 @@ class _PlanDriveScreenState extends State<PlanDriveScreen> {
   void _showTimePicker() {
     showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: const TimeOfDay(hour: 8, minute: 30)
     ).then((value) {
       setState(() {
         _timeOfDay = value!;

@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  flutter_native_timezone: ^1.0.8
   geocoding: ^2.1.0
   google_maps_flutter: ^2.2.5
   geolocator: ^9.0.2

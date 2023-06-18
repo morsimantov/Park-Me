@@ -182,7 +182,6 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-
   void onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;

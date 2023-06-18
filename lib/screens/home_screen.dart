@@ -71,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             cancelBtnText: _logoutNo,
                             confirmBtnColor: const Color(0xFF03A295),
                             onConfirmBtnTap: () {
+
                               final provider =
                                   Provider.of<GoogleSignInProvider>(context,
                                       listen: false);

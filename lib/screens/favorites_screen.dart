@@ -9,11 +9,11 @@ import 'package:park_me/config/strings.dart';
 import 'package:park_me/model/filter_parameters.dart';
 import 'package:park_me/model/parking_lot.dart';
 import 'package:park_me/screens/search_screen.dart';
-import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import '../env.sample.dart';
 import 'home_screen.dart';
 import 'lot_details_screen.dart';
+import '../utils.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({
@@ -26,6 +26,7 @@ class FavoritesScreen extends StatefulWidget {
 
 class FavoritesScreenState extends State<FavoritesScreen> {
   static const String _appBarTitle = "Your Favorites";
+  static const String _emptyFavoritesMsg = "Your Favorites list is empty";
   static const double _fontSize = 15;
   static const double _fontSizeTitle = 20;
 
@@ -50,7 +51,8 @@ class FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> getParkingLotList() async {
     final id = user.uid;
     // Retrieve favorites lots from the server
-    final response = await http.get(Uri.parse("${Env.URL_PREFIX}/favorites/$id"));
+    final response =
+        await http.get(Uri.parse("${Env.URL_PREFIX}/favorites/$id"));
     final decodedResponse = utf8.decode(response.bodyBytes);
     final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
     // Convert JSON data to ParkingLot objects
@@ -98,39 +100,6 @@ class FavoritesScreenState extends State<FavoritesScreen> {
       parkingLotItem.distance = (distance! / 1000);
       setState(() {});
     }
-  }
-
-  Future<void> addToFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    // Generate a unique ID for the favorite lot entry
-    String fid = const Uuid().v4();
-    // Add the favorite lot entry to Firestore
-    await _firestore.collection('favorites').doc(fid).set({
-      'fid': fid,
-      'uid': uid,
-      'parkingLot': lot_id,
-    });
-  }
-
-  Future<void> removeFromFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    // Remove the parking lot from the favorites list
-    _parkingLots.removeWhere((item) => item.lot_id == lot_id);
-    // Query Firestore to find the matching favorite lot entry
-    var snapshot = await _firestore
-        .collection("favorites")
-        .where('uid', isEqualTo: uid)
-        .where('parkingLot', isEqualTo: lot_id)
-        .get();
-    // Delete the matching favorite lot entry
-    for (var doc in snapshot.docs) {
-      await doc.reference.delete();
-    }
-    // If the list is empty now
-    if (_parkingLots.isEmpty) {
-      _isFavoritesEmpty = true;
-    }
-    setState(() {});
   }
 
   void onItemTapped(int index) {
@@ -192,7 +161,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
               child: Align(
                 alignment: Alignment.topCenter,
                 child: Text(
-                  noLotsAvailable,
+                  _emptyFavoritesMsg,
                   style: TextStyle(
                     fontFamily: fontFamilyMiriam,
                     fontSize: 17,
@@ -201,10 +170,8 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                 ),
               ),
             )
-          :
-
           // By default, show a loading spinner.
-          (_parkingLots.isEmpty)
+          : (_parkingLots.isEmpty)
               ? const Center(
                   child: CircularProgressIndicator(),
                 )
@@ -324,14 +291,34 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                                                           Icons.star,
                                                           color: Colors.yellow,
                                                         ),
-                                                  onPressed: () => snapshot.data
-                                                              .docs.length ==
-                                                          0
-                                                      ? addToFavorites(
-                                                          user.uid, data.lot_id)
-                                                      : removeFromFavorites(
-                                                          user.uid,
-                                                          data.lot_id));
+                                                  onPressed: () => {
+                                                        if (snapshot.data.docs
+                                                                .length ==
+                                                            0)
+                                                          {
+                                                            addToFavorites(
+                                                                user.uid,
+                                                                data.lot_id)
+                                                          }
+                                                        else
+                                                          {
+                                                            removeFromFavorites(
+                                                                user.uid,
+                                                                data.lot_id),
+                                                            _parkingLots.removeWhere(
+                                                                (item) =>
+                                                                    item.lot_id ==
+                                                                    data.lot_id),
+                                                            // If the list is empty now
+                                                            if (_parkingLots
+                                                                .isEmpty)
+                                                              {
+                                                                _isFavoritesEmpty =
+                                                                    true,
+                                                              },
+                                                            setState(() {})
+                                                          }
+                                                      });
                                             }),
                                       ]),
                                       Padding(
