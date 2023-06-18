@@ -33,6 +33,11 @@ const String accessibilityButton = "Accessibility";
 const String undergroundButton = "Underground";
 const String discountButton = "Resident Discount";
 const String fixedPriceButton = "Fixed price";
+const String removedSuccessfullyMsg = "Lot removed from favorites successfully.";
+const String addedSuccessfullyMsg = "Lot added to favorites successfully.";
+const String removeErrorMsg = "Failed to remove lot from favorites.";
+const String addErrorMsg = "Failed to add lot to favorites.";
+
 
 // Days of the week string list
 const List<String> weekDaysList = <String>[

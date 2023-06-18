@@ -210,6 +210,7 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
     setState(() {});
   }
 
+  // Order the list by the button the user clicked last
   void orderByLastClick(String clickedLast, List<ParkingLot> toRemove) {
     switch (clickedLast) {
       case availabilityButton:

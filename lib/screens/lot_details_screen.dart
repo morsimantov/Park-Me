@@ -94,7 +94,6 @@ class LotDetailsScreenState extends State<LotDetailsScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

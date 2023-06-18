@@ -67,7 +67,7 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
     // Send a GET request to retrieve parking lots based on location, day, and time
     final response = await http.get(Uri.parse(
         "${Env.URL_PREFIX}/closest5lots/${widget.wantedLocationAddress}"
-            "/${widget.day}/${widget.timeOfDay}"));
+        "/${widget.day}/${widget.timeOfDay}"));
     final decodedResponse = utf8.decode(response.bodyBytes);
     // Check if the response is empty
     if (decodedResponse == '[]') {
@@ -78,7 +78,7 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
     }
     // Decode the response and cast it to a list of Map<String, dynamic>
     var decodedResponseJson =
-    json.decode(decodedResponse).cast<Map<String, dynamic>>();
+        json.decode(decodedResponse).cast<Map<String, dynamic>>();
     print(decodedResponse);
     // Iterate through the response list
     for (var item in decodedResponseJson) {
@@ -100,7 +100,7 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
     permission = await Geolocator.requestPermission();
     // Retrieve the location coordinates for the wanted location address
     List<Location> locations =
-    await locationFromAddress(widget.wantedLocationAddress);
+        await locationFromAddress(widget.wantedLocationAddress);
     _wantedLocationLat = locations.first.latitude;
     _wantedLocationLong = locations.first.longitude;
     for (var parkingLotItem in _lotsDict.keys) {
@@ -372,7 +372,6 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-
                         // Render ParkingLot lists
                         Padding(
                           padding: const EdgeInsets.only(top: 9),
@@ -381,10 +380,9 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
                             shrinkWrap: true,
                             itemCount: _lotsDict.keys.length,
                             itemBuilder: (BuildContext context, int index) {
-                              List<ParkingLot> sortedList =
-                                  _lotsDict.keys.toList();
-                              sortedList
-                                  .sort((a, b) => a.availability != 0 ? 1 : 0);
+                              List<ParkingLot> sortedList = _lotsDict.keys.toList();
+                              sortedList.sort((a, b) => a.distance.compareTo(b.distance));
+                              sortedList.sort((a, b) => a.availability != null ? 0 : 1);
                               var data = (sortedList)[index];
                               return GestureDetector(
                                 onTap: () {

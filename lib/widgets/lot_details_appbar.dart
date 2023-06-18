@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../config/colors.dart';
+import '../env.sample.dart';
+import 'package:http/http.dart' as http;
+import '../utils.dart';
 
 class LotDetailsAppBar extends StatefulWidget {
   final String image;
@@ -19,29 +22,6 @@ class LotDetailsAppBar extends StatefulWidget {
 
 class LotDetailsAppBarState extends State<LotDetailsAppBar> {
   final user = FirebaseAuth.instance.currentUser!;
-
-  Future<void> addToFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    String fid = const Uuid().v4();
-    await _firestore.collection('favorites').doc(fid).set({
-      'fid': fid,
-      'uid': uid,
-      'parkingLot': lot_id,
-    });
-  }
-
-  Future<void> removeFromFavorites(String uid, int lot_id) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    var snapshot = await _firestore
-        .collection("favorites")
-        .where('uid', isEqualTo: uid)
-        .where('parkingLot', isEqualTo: lot_id)
-        .get();
-    for (var doc in snapshot.docs) {
-      await doc.reference.delete();
-    }
-    setState(() {});
-  }
 
   @override
   Widget build(BuildContext context) {

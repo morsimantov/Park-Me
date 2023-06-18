@@ -1,11 +1,6 @@
-import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:uuid/uuid.dart';
+import 'config/strings.dart';
 import 'env.sample.dart';
-import 'model/parking_lot.dart';
 import 'package:http/http.dart' as http;
 
 Future<String> getAddressFromCoordinates(
@@ -46,32 +41,6 @@ Future<bool> validateAddress(String address) async {
   }
 }
 
-Future<void> addToFavorites(String uid, int lot_id) async {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // Generate a unique ID for the favorite lot entry
-  String fid = const Uuid().v4();
-  // Add the favorite lot entry to Firestore
-  await _firestore.collection('favorites').doc(fid).set({
-    'fid': fid,
-    'uid': uid,
-    'parkingLot': lot_id,
-  });
-}
-
-Future<void> removeFromFavorites(String uid, int lot_id) async {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // Query Firestore to find the matching favorite lot entry
-  var snapshot = await _firestore
-      .collection("favorites")
-      .where('uid', isEqualTo: uid)
-      .where('parkingLot', isEqualTo: lot_id)
-      .get();
-  // Delete the matching favorite lot entry
-  for (var doc in snapshot.docs) {
-    await doc.reference.delete();
-  }
-}
-
 int convertToWalkingDistance(double distanceInKm) {
   // Assuming an average walking speed of 5 kilometers per hour
   double walkingSpeedKph = 5.0;
@@ -87,4 +56,42 @@ double convertToKilometers(double timeInMinutes) {
   double timeInHours = timeInMinutes / 60;
   double distanceInKm = walkingSpeed * timeInHours;
   return distanceInKm;
+}
+
+Future<void> addToFavorites(String uid, int lot_id) async {
+  // Construct the API endpoint URL
+  final url = "${Env.URL_PREFIX}/favorites/add/";
+  try {
+    // Send a POST request to the API endpoint
+    final response = await http.post(
+      Uri.parse(url),
+      body: {
+        'uid': uid,
+        'lot_id': lot_id.toString(),
+      },
+    );
+    if (response.statusCode == 200) {
+      print(addedSuccessfullyMsg);
+    } else {
+      print('$addErrorMsg Error: ${response.body}');
+    }
+  } catch (e) {
+    print('Error: $e');
+  }
+}
+
+Future<void> removeFromFavorites(String uid, int lot_id) async {
+  // Construct the API endpoint URL with the user ID and lot ID
+  final url = "${Env.URL_PREFIX}/favorites/remove/$uid/$lot_id";
+  try {
+    // Send a DELETE request to the API endpoint
+    final response = await http.delete(Uri.parse(url));
+    if (response.statusCode == 200) {
+      print(removedSuccessfullyMsg);
+    } else {
+      print('$removeErrorMsg Error: ${response.reasonPhrase}');
+    }
+  } catch (e) {
+    print('Error: $e');
+  }
 }
