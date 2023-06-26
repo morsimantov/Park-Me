@@ -86,7 +86,7 @@ class PlanDriveResultScreenState extends State<PlanDriveResultScreen> {
       ParkingLot parkingLot = ParkingLot.fromJson(item['lot']);
       // Extract the status value
       num status = item['status'];
-      // Add the key-value pair to the dictionary
+      // Add the key-value pair to the dictionary of parking lots and statuses
       _lotsDict[parkingLot] = status;
     }
     // Calculate the distances between the wanted location and the parking lots

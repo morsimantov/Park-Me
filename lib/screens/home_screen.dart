@@ -76,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Provider.of<GoogleSignInProvider>(context,
                                       listen: false);
                               provider.logout();
+                              Navigator.of(context).pop();
                             });
                       },
                     ),
