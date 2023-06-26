@@ -49,7 +49,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
             const SizedBox(
-              height: 8,
+              height: 17,
             ),
             const Align(
               alignment: Alignment.centerLeft,
@@ -62,7 +62,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
             const SizedBox(
-              height: 80,
+              height: 65,
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(

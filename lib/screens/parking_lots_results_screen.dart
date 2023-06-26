@@ -117,9 +117,9 @@ class ParkingLotsResultsScreenState extends State<ParkingLotsResultsScreen> {
     final response = await http.get(Uri.parse(Env.URL_PREFIX));
     // Decode the response from bytes to String
     final decodedResponse = utf8.decode(response.bodyBytes);
-    // Convert the decoded response into a list of maps
+    // Convert the decoded response into json
     final items = json.decode(decodedResponse).cast<Map<String, dynamic>>();
-    // Convert each map item into a ParkingLot object and create a list of ParkingLot objects
+    // Convert each json item into a ParkingLot object and create a list of ParkingLot objects
     List<ParkingLot> parkingLotsTemp = items.map<ParkingLot>((json) {
       return ParkingLot.fromJson(json);
     }).toList();
