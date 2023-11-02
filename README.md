@@ -1,4 +1,4 @@
-![logo_parkme](https://github.com/morsimantov/Park-Me/assets/92635551/ab4ac973-a207-432e-af1a-22d821800378)  Park Me
+![logo_parkme](https://github.com/morsimantov/Park-Me/assets/92635551/ab4ac973-a207-432e-af1a-22d821800378)
 
 1. [About](#About)
 2. [Dependencies](#Dependencies)
@@ -6,7 +6,7 @@
 
 ## About
 
-### ParkMe is an app we created as a final project in our B.Sc of Compter Science. 
+### ParkMe is an app we created as a final project in our B.Sc of Compter Science in BIU. 
 
 Its goal is to help you find an available parking spot in a parking lot.
 
@@ -27,9 +27,18 @@ We also designed a searching mechanism that considers different preferences of t
 * Server side - download the server side code in the link: https://github.com/ShaiFisher1/Parkme-Django-Firebase-Server and follow installation instruction.
 * In order to activate the server side, make sure your'e inside the "parkmefire" folder, within this path use the following command in the terminal:
 
-'''
+```
 python manage.py runserver
-'''
-  
+```
+
 
 ## Overview
+
+Welcome to ParkMe!
+
+First, you need to sign in with your google account:
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/bdc5b0be-dca4-4ae4-bd21-51a6420a2a18)
+
+
+
