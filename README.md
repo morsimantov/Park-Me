@@ -1,5 +1,4 @@
-![logo_parkme](https://github.com/morsimantov/Park-Me/assets/92635551/ab4ac973-a207-432e-af1a-22d821800378)  Park Me
-
+![logo_parkme](https://github.com/morsimantov/Park-Me/assets/92635551/ab4ac973-a207-432e-af1a-22d821800378)
 1. [About](#About)
 2. [Dependencies](#Dependencies)
 3. [Overview](#Overview)
