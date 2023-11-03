@@ -9,7 +9,7 @@
 
 The app was designed in Flutter using Django server side integrated with Firebase cloud database (Firestore).
 
-We thought about the parking problem in Tel Aviv, that almost every person encounters. We wanted to find a solution while answering each individual’s needs – whether it's personal preferences such as price and accessibility, or the need to plan a drive ahead due to the frequent changes in the occupancy of parking lots.
+We thought about the parking problem in Tel Aviv, that almost every person encounters. We wanted to find a solution while answering each individual’s needs – whether it's personal preferences such as price and accessibility, or the need to plan a drive ahead due to the frequent changes in the occupancy of parking lots.[^1]
 
 The main innovation aspect of the project is **planning a drive ahead – meaning searching a parking lot a certain time ahead, and predicting if it’s going to be available**, in order to plan your drive in advance without having to worry about a parking lot at the last minute. 
 
@@ -51,9 +51,9 @@ If you want to find a parking spot available near you at this moment.
 
 ![image](https://github.com/morsimantov/Park-Me/assets/92635551/ecd8ea31-575a-4f5a-867b-633407e89732)
 
-You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete[^1].
+You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete[^2].
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/e2663fe9-cd4c-4282-a083-43f34cf52f21)
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/e2663fe9-cd4c-4282-a083-43f34cf52f21 | height=500)
 
 You can move the map as you'd like and pin a location you want to search parking near it. There is a button that guides you back to your location ("Current Location" on the left).
 The available and nearby lots will be presented to you and you can also order them by the buttons above, or use ordering and filtering options by the button on the top left.
@@ -88,7 +88,7 @@ You can also check by a specific parking lot's name, at the other tab above.
 
 ![image](https://github.com/morsimantov/Park-Me/assets/92635551/e8eac99d-35fb-4bf9-a683-b9b297ef8fb1)
 
-And now you will know whether the parking lot is going to available or not[^2]:
+And now you will know whether the parking lot is going to available or not[^3]:
 
 ![image](https://github.com/morsimantov/Park-Me/assets/92635551/7c2eb2b9-7dc7-4eb1-967a-e51511a2a975)
 
@@ -104,10 +104,11 @@ You can save your preffered parking lots (by marking the star icon on the right)
 
 You can check out the parking lots that are currently near you. Near the the available lots there's a green spot (red spot for full and orange for crowded).
 
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/7c426c54-f248-4c6e-bf60-2a02c127adb2)
+
 > [!NOTE]
 > our app works with live location, therefore requires that you consent to location sharing in your device.
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/7c426c54-f248-4c6e-bf60-2a02c127adb2)
-
-[^1]: using google maps autocomplete.
-[^2]: With high probability.
+[^1]: Currently it covers parking lots in Tel Aviv and aimed at finding a parking space in the city.
+[^2]: Using google maps autocomplete.
+[^3]: With high probability.
