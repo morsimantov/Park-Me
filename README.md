@@ -2,7 +2,10 @@
 1. [About](#About)
 2. [Dependencies](#Dependencies)
 3. [Overview](#Overview)
-   _[Find a Spot Now](#FindaSpotNow) 
+    - [Find a Spot Now](#FindaSpotNow)
+    - [Plan_a_Drive](#PlanaDrive)
+    - [Favorites](#Favorires)
+    - [Parking_Lots_Nearby](#ParkingLotsNearby)
 
 ## About
 
@@ -16,12 +19,13 @@ The main innovation aspect of the project:
 
 **planning a drive ahead – meaning searching a parking lot a certain time ahead, and predicting if it’s going to be available**, in order to plan your drive in advance without having to worry about a parking lot at the last minute. 
 
-We collected data over the span of nearly 6 months and analyzed it. We utilized advanced machine learning algorithms and trained different models in order to find the optimal one, with emphasis on high accuracy. There are also a lot of parking lots without information about their occupancy, and our model strives to predict about them as well.
+* We collected data over the span of nearly 6 months and analyzed it.
+* We utilized advanced machine learning algorithms and trained different models in order to find the optimal one, with emphasis on high accuracy.
+* There are also a lot of parking lots without information about their occupancy, and our model strives to predict about them as well.
+* We also designed a searching mechanism that considers different preferences of the user, such as availability, walking distance, price and more.
 
-We also designed a searching mechanism that considers different preferences of the user, such as availability, walking distance, price and more, that suggests the user parking lots accordingly.
 
-
-## Dependencies
+## Dependencie
 
 * Clone the repository
 * Server side - download the server side code in the link: https://github.com/ShaiFisher1/Parkme-Django-Firebase-Server and follow installation instruction.
@@ -51,32 +55,64 @@ Now we'll guide you through the different categories.
 
 If you want to find a parking spot available near you at this moment.
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/e0bd44f3-e9bf-46f4-923b-99696abe0d94)
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/d40ac73d-9fe2-4d3c-b705-bcf323c44d2d)
 
-You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete.
+You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete[^1].
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/638ade50-fb2c-4fb4-94bb-d1f489fe4d7a)
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/e2663fe9-cd4c-4282-a083-43f34cf52f21)
 
 You can move the map as you'd like and pin a location you want to search parking near it. There is a button that guides you back to your location ("Current Location" on the left).
+The available and nearby lots will be presented to you and you can also order them by the buttons above, or use ordering and filtering options by the button on the top left.
 
-You can also use ordering and filtering options by the right button in the search box.
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/12370b83-b599-4b7f-898f-184e82767fed)
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/51da3b19-5e24-4485-be33-e49b83998610)
+Once you tap on a parking lot, you can see different detailes about it:
 
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/134b9020-d4da-48ff-834d-15525cd092e3)
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/28af6420-352a-460f-9a7e-472cb7ebff28)
+
+The Waze button will direct you to the parking lot in Waze.
 
 ### Plan a Drive
 
+The main feature of our app is when you want to know whether a parking lot will be available a certain time ahead.
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/cb5acd0b-87b2-4e96-aa6f-073db6531792)
+
+let's say you need to drive to Tel Aviv tomorrow morning and wants to know which lot will be available near your destination at 8:30 AM.
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/cb5acd0b-87b2-4e96-aa6f-073db6531792)
+
+Now you'll be presented with the parking lots that are predicted to be available at that time, ordered by distance from your destination.
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/fd5ff55f-6bcd-4d46-83a0-8c74dbb01f63)
+
+You can also check by a specific parking lot's name, at the other tab above.
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/4b47a0fb-b379-4e86-b426-342b6068e167)
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/e8eac99d-35fb-4bf9-a683-b9b297ef8fb1)
+
+And now you will know whether the parking lot is going to available or not[^2]:
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/7c2eb2b9-7dc7-4eb1-967a-e51511a2a975)
+
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/3ed41a34-9d74-4a72-8be8-88561a811c64)
+
 ### Favorites (Saved Lots)
 
-You can save your preffered parking lots (by marking the star on the right) and they'll be saved for you in the Favorites category.
+You can save your preffered parking lots (by marking the star icon on the right) and they'll be saved for you in the Favorites category.
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/f1ee9d43-c4d0-41b9-877b-ffed44dd6a91)
-
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/eb87a0d1-de0a-4f34-8e98-87fd2e8e3783)
 
 ### Parking Lots Nearby
 
-You can checkout the parking lots that are currently near you. Near the the available lots there's a green spot (red spot for full and orange for crowded).
+You can check out the parking lots that are currently near you. Near the the available lots there's a green spot (red spot for full and orange for crowded).
 
-Note: our app works with live location, therefore requires that you consent to location sharing in your device.
+**Note:** our app works with live location, therefore requires that you consent to location sharing in your device.
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/b38edf49-bd25-4709-bc67-56af3b3037f8)
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/7c426c54-f248-4c6e-bf60-2a02c127adb2)
+
+[^1]: using google maps autocomplete.
+[^2]: With high probability.
