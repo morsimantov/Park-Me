@@ -2,11 +2,7 @@
 1. [About](#About)
 2. [Dependencies](#Dependencies)
 3. [Overview](#Overview)
-    - [Find a Spot Now](#FindaSpotNow)
-    - [Plan_a_Drive](#PlanaDrive)
-    - [Favorites](#Favorires)
-    - [Parking_Lots_Nearby](#ParkingLotsNearby)
-
+   
 ## About
 
 **ParkMe is an app we created as a final project in our B.Sc of Compter Science in BIU. Its goal is to help you easily find an available parking spot in a parking lot.**
@@ -15,9 +11,7 @@ The app was designed in Flutter using Django server side integrated with Firebas
 
 We thought about the parking problem in Tel Aviv, that almost every person encounters. We wanted to find a solution while answering each individual’s needs – whether it's personal preferences such as price and accessibility, or the need to plan a drive ahead due to the frequent changes in the occupancy of parking lots.
 
-The main innovation aspect of the project:
-
-**planning a drive ahead – meaning searching a parking lot a certain time ahead, and predicting if it’s going to be available**, in order to plan your drive in advance without having to worry about a parking lot at the last minute. 
+The main innovation aspect of the project is **planning a drive ahead – meaning searching a parking lot a certain time ahead, and predicting if it’s going to be available**, in order to plan your drive in advance without having to worry about a parking lot at the last minute. 
 
 * We collected data over the span of nearly 6 months and analyzed it.
 * We utilized advanced machine learning algorithms and trained different models in order to find the optimal one, with emphasis on high accuracy.
@@ -55,7 +49,7 @@ Now we'll guide you through the different categories.
 
 If you want to find a parking spot available near you at this moment.
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/d40ac73d-9fe2-4d3c-b705-bcf323c44d2d)
+![image](https://github.com/morsimantov/Park-Me/assets/92635551/ecd8ea31-575a-4f5a-867b-633407e89732)
 
 You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete[^1].
 
@@ -110,7 +104,8 @@ You can save your preffered parking lots (by marking the star icon on the right)
 
 You can check out the parking lots that are currently near you. Near the the available lots there's a green spot (red spot for full and orange for crowded).
 
-**Note:** our app works with live location, therefore requires that you consent to location sharing in your device.
+> [!NOTE]
+> our app works with live location, therefore requires that you consent to location sharing in your device.
 
 ![image](https://github.com/morsimantov/Park-Me/assets/92635551/7c426c54-f248-4c6e-bf60-2a02c127adb2)
 
