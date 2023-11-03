@@ -19,7 +19,7 @@ The main innovation aspect of the project is **planning a drive ahead – meanin
 * We also designed a searching mechanism that considers different preferences of the user, such as availability, walking distance, price and more.
 
 
-## Dependencie
+## Dependencies
 
 * Clone the repository
 * Server side - download the server side code in the link: https://github.com/ShaiFisher1/Parkme-Django-Firebase-Server and follow installation instruction.
@@ -35,21 +35,23 @@ Welcome to ParkMe!
 
 First, you need to sign up with your google account:
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/8bdf77b5-c088-48d0-91bd-c3f20c44afdd)
+![image]()
+
+<img src="https://github.com/morsimantov/Park-Me/assets/92635551/4557a7c7-8b97-45d5-9098-8c16b79ae707" height="500" />
 
 After signing up the app will remember you in any future visit (unless you logout).
 
 The main menu of the app:
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/db3c7c10-03e0-403a-b5b1-8ffbcb6fb686)
+<img src="https://github.com/morsimantov/Park-Me/assets/92635551/f6b19376-1263-4380-9195-17c39b83f8d2" height="500" />
 
 Now we'll guide you through the different categories.
 
 ### Find a Spot Now
 
-If you want to find a parking spot available near you at this moment.
+In case you want to find a parking spot available near you at this moment.
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/ecd8ea31-575a-4f5a-867b-633407e89732)
+<img src="https://github.com/morsimantov/Park-Me/assets/92635551/805a5e8f-9f29-4c00-835a-77f1c06669e4" height="500" />
 
 You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete[^2].
 
@@ -58,13 +60,13 @@ You can write an address you need to go to, in order to find a parking place in 
 You can move the map as you'd like and pin a location you want to search parking near it. There is a button that guides you back to your location ("Current Location" on the left).
 The available and nearby lots will be presented to you and you can also order them by the buttons above, or use ordering and filtering options by the button on the top left.
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/12370b83-b599-4b7f-898f-184e82767fed)
+<img src="https://github.com/morsimantov/Park-Me/assets/92635551/12370b83-b599-4b7f-898f-184e82767fed" height="500" />
 
 Once you tap on a parking lot, you can see different detailes about it:
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/134b9020-d4da-48ff-834d-15525cd092e3)
+<img src="https://github.com/morsimantov/Park-Me/assets/92635551/134b9020-d4da-48ff-834d-15525cd092e3" height="500" />
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/28af6420-352a-460f-9a7e-472cb7ebff28)
+<img src="https://github.com/morsimantov/Park-Me/assets/92635551/28af6420-352a-460f-9a7e-472cb7ebff28" height="500" />
 
 The Waze button will direct you to the parking lot in Waze.
 
