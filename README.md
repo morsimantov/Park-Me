@@ -53,7 +53,9 @@ If you want to find a parking spot available near you at this moment.
 
 You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete[^2].
 
-![image](https://github.com/morsimantov/Park-Me/assets/92635551/e2663fe9-cd4c-4282-a083-43f34cf52f21 | height=500)
+![](https://gyazo.com/eb5c5741b6a9a16c692170a41a49c858.png | width=100)
+
+![](https://github.com/morsimantov/Park-Me/assets/92635551/e2663fe9-cd4c-4282-a083-43f34cf52f21 | height=500)
 
 You can move the map as you'd like and pin a location you want to search parking near it. There is a button that guides you back to your location ("Current Location" on the left).
 The available and nearby lots will be presented to you and you can also order them by the buttons above, or use ordering and filtering options by the button on the top left.
