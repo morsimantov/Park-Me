@@ -111,6 +111,7 @@ You can check out the parking lots that are currently near you. Near the the ava
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/7c426c54-f248-4c6e-bf60-2a02c127adb2" height="550" />
 
 <br /> 
+<br /> 
 
 > [!NOTE]
 > our app works with live location, therefore requires that you consent to location sharing in your device.
