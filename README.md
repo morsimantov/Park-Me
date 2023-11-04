@@ -18,10 +18,10 @@ The main innovation aspect of the project is **planning a drive ahead – meanin
 * We collected data over the span of nearly 6 months and analyzed it.
 * We utilized advanced machine learning algorithms and trained different models in order to find the optimal one, with emphasis on high accuracy.
 * There are also a lot of parking lots without information about their occupancy, and our model strives to predict about them as well.
-* We also designed a searching mechanism that considers different preferences of the user, such as availability, walking distance, price and more.
+* We also designed a searching mechanism that cnsiders different preferences of the user, such as availability, walking distance, price and more.
 
+[![Watch the video](https://i.imgur.com/xS3DzlS.png)](https://youtu.be/qg5JA5RZv6Y<VIDEO_ID>)
 
-[![Watch the video](https://github.com/morsimantov/Park-Me/assets/92635551/959e1a37-1690-4337-9e15-89f7abfd0598)](https://youtu.be/qg5JA5RZv6Y)
 
 
 ## Dependencies
