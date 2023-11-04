@@ -20,7 +20,8 @@ The main innovation aspect of the project is **planning a drive ahead – meanin
 * There are also a lot of parking lots without information about their occupancy, and our model strives to predict about them as well.
 * We also designed a searching mechanism that considers different preferences of the user, such as availability, walking distance, price and more.
 
-<video width="630" height="300" src="https://youtu.be/qg5JA5RZv6Y"></video>
+
+[![Watch the video](https://github.com/morsimantov/Park-Me/assets/92635551/959e1a37-1690-4337-9e15-89f7abfd0598)](https://youtu.be/qg5JA5RZv6Y)
 
 
 ## Dependencies
@@ -69,6 +70,9 @@ The available and nearby lots will be presented to you and you can also order th
 Once you tap on a parking lot, you can see different detailes about it:
 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/134b9020-d4da-48ff-834d-15525cd092e3" height="550" />
+
+<br /> 
+<br /> 
 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/28af6420-352a-460f-9a7e-472cb7ebff28" height="550" />
 
