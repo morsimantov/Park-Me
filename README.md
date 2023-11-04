@@ -79,16 +79,13 @@ The main feature of our app is when you want to know whether a parking lot will 
 
 let's say you need to drive to Tel Aviv tomorrow morning and wants to know which lot will be available near your destination at 8:30 AM.
 
-<img src="https://github.com/morsimantov/Park-Me/assets/92635551/cb5acd0b-87b2-4e96-aa6f-073db6531792" height="550" />
+<img src="https://github.com/morsimantov/Park-Me/assets/92635551/4b47a0fb-b379-4e86-b426-342b6068e167" height="550" />
 
 Now you'll be presented with the parking lots that are predicted to be available at that time, ordered by distance from your destination.
 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/fd5ff55f-6bcd-4d46-83a0-8c74dbb01f63" height="550" />
 
 You can also check by a specific parking lot's name, at the other tab above.
-
-<img src="https://github.com/morsimantov/Park-Me/assets/92635551/4b47a0fb-b379-4e86-b426-342b6068e167" height="550" />
-
 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/e8eac99d-35fb-4bf9-a683-b9b297ef8fb1" height="550" />
 
@@ -114,7 +111,7 @@ You can check out the parking lots that are currently near you. Near the the ava
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/7c426c54-f248-4c6e-bf60-2a02c127adb2" height="550" />
 
 
-
+<br>
 > [!NOTE]
 > our app works with live location, therefore requires that you consent to location sharing in your device.
 
