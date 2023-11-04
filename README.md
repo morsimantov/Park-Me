@@ -7,6 +7,8 @@
 
 **ParkMe is an app we created as a final project in our B.Sc of Compter Science in BIU. Its goal is to help you easily find an available parking spot in a parking lot.**
 
+**The project was an awarded project for 2023 in BIU.**
+
 The app was designed in Flutter using Django server side integrated with Firebase cloud database (Firestore).
 
 We thought about the parking problem in Tel Aviv, that almost every person encounters. We wanted to find a solution while answering each individual’s needs – whether it's personal preferences such as price and accessibility, or the need to plan a drive ahead due to the frequent changes in the occupancy of parking lots.[^1]
@@ -17,6 +19,8 @@ The main innovation aspect of the project is **planning a drive ahead – meanin
 * We utilized advanced machine learning algorithms and trained different models in order to find the optimal one, with emphasis on high accuracy.
 * There are also a lot of parking lots without information about their occupancy, and our model strives to predict about them as well.
 * We also designed a searching mechanism that considers different preferences of the user, such as availability, walking distance, price and more.
+
+<video width="630" height="300" src="https://youtu.be/qg5JA5RZv6Y"></video>
 
 
 ## Dependencies
