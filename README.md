@@ -62,11 +62,11 @@ Now we'll guide you through the different categories and screens of our app.
 In case you want to find a parking spot available near you at this moment.
 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/805a5e8f-9f29-4c00-835a-77f1c06669e4" height="550" />
-<br /> 
-<br /> 
-You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete[^2].
-<br /> 
-<br /> 
+
+
+You can write an address you need to go to, in order to find a parking place in the area. There is a places autocomplete.[^2]
+
+
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/e2663fe9-cd4c-4282-a083-43f34cf52f21" height="550" />
 <br /> 
 <br /> 
@@ -120,11 +120,9 @@ You can also check by a specific parking lot's name, at the other tab above.
 <br /> 
 <br /> 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/e8eac99d-35fb-4bf9-a683-b9b297ef8fb1" height="550" />
-<br /> 
-<br /> 
-And now you will know whether the parking lot is going to available or not[^3]:
-<br /> 
-<br /> 
+
+And now you will know whether the parking lot is going to available or not:[^3]
+
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/7c2eb2b9-7dc7-4eb1-967a-e51511a2a975" height="550" />
 
 
