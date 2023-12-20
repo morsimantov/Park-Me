@@ -5,7 +5,7 @@
    
 ## About
 
-**ParkMe is an app we created as a final project in our B.Sc of Compter Science in BIU. Its goal is to help you easily find an available parking spot in a parking lot.**
+**ParkMe is an app we created as a final project in our B.Sc of Computer Science in BIU. Its goal is to help you easily find an available parking spot in a parking lot.**
 
 **The project was an awarded project for 2023 in BIU.**
 
@@ -28,7 +28,7 @@ The main innovation aspect of the project is **planning a drive ahead – meanin
 
 * Clone the repository
 * Server side - download the server side code in the link: https://github.com/ShaiFisher1/Parkme-Django-Firebase-Server and follow installation instruction.
-* In order to activate the server side, make sure your'e inside the "parkmefire" folder, within this path use the following command in the terminal:
+* In order to activate the server side, make sure you are inside the "parkmefire" folder, within this path use the following command in the terminal:
 
 ```
 python manage.py runserver
@@ -131,14 +131,14 @@ And now you will know whether the parking lot is going to available or not:[^3]
 
 ### Favorites (Saved Lots)
 
-You can save your preffered parking lots (by marking the star icon on the right) and they'll be saved for you in the Favorites category.
+You can save your preferred parking lots (by marking the star icon on the right) and they'll be saved for you in the Favorites category.
 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/eb87a0d1-de0a-4f34-8e98-87fd2e8e3783" height="550" />
 
 
 ### Parking Lots Nearby
 
-You can check out the parking lots that are currently near you. Near the the available lots there's a green spot (red spot for full and orange for crowded).
+You can check out the parking lots that are currently near you. Near the available lots there's a green spot (red spot for full and orange for crowded).
 
 <img src="https://github.com/morsimantov/Park-Me/assets/92635551/7c426c54-f248-4c6e-bf60-2a02c127adb2" height="550" />
 
